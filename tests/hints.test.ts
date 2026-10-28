@@ -10,7 +10,9 @@ for (const level of levels) test(`hints recover from an alternative opening in l
   for (let n = 0; n < level.screws.length && game.state.status === 'playing'; n++) {
     const before = structuredClone(game.state);
     const canUndo = game.canUndo;
+    const started = performance.now();
     const hint = game.getHint();
+    assert.ok(performance.now() - started < 1000, 'hint stalled the game');
     assert.deepEqual(game.state, before, 'asking for a hint changed game state');
     assert.equal(game.canUndo, canUndo);
     assert.ok(hint.screwId, hint.message);
@@ -27,7 +29,7 @@ for (const level of levels) test(`hints recover from an alternative opening in l
 
 test('deadlocked shelf and lost games advise undo instead of offering a losing move', () => {
   const screws = Array.from({length: 6}, (_, i) => ({id: `mint-${i}`, plateId: 'cover', color: 'mint' as const, x: 0, y: 0, z: 0, blockedBy: []}));
-  const level: Level = {...levels[0], plates: [], screws, solution: screws.map(s => s.id), trayOrder: ['coral', 'blue', 'mint', 'mint']};
+  const level: Level = {...levels[0], plates: [], screws, solution: screws.map(s => s.id), trayOrder: ['coral', 'blue', 'gold', 'violet', 'mint', 'mint']};
   const game = new Game(level);
   for (let i = 0; i < 5; i++) game.selectScrew(`mint-${i}`);
   assert.equal(game.state.status, 'playing');

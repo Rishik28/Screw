@@ -1,64 +1,72 @@
-import { MODEL_SCREW_ANCHORS } from './models';
+import { OBJECT_MODELS } from './objects';
 
 export const COLORS = {
-  coral: '#f17670', blue: '#66aaf4', mint: '#51c8a3',
-  gold: '#f4c75c', violet: '#ad8be8', pink: '#ee8fbd',
+  coral: '#f44757', blue: '#2378ee', mint: '#13ac72', gold: '#f7b500',
+  violet: '#9355ee', pink: '#f2339b', orange: '#ff781f', teal: '#00b6c9',
 } as const;
 export type Color = keyof typeof COLORS;
 export interface Plate {
   id: string; shape: string; x: number; y: number; z: number;
   width: number; height: number; rotation: number; scale: number;
   layer: number; color: string;
+  primitive?: 'box' | 'cylinder' | 'sphere' | 'cone' | 'wedge' | 'model';
+  size?: [number,number,number]; rotationX?: number; rotationY?: number; label?: string;
+  details?: typeof OBJECT_MODELS[number]['parts'][number]['details'];
 }
 export interface Screw {
   id: string; plateId: string; color: Color; x: number; y: number; z: number;
-  blockedBy: string[];
+  blockedBy: string[]; normal?: [number,number,number];
 }
 export interface Level {
   id: number; name: string; subtitle: string; model: string;
   plates: Plate[]; screws: Screw[]; trayOrder: Color[]; solution: string[];
 }
 
-// Every authored layer contains exactly three of each of its two colors.
-// The solution walks front to back, completing the first color before the second.
-// Independent left/right stacks allow alternate choices that can fill the buffer.
-function makeLevel(id: number, name: string, model: string, pairs: [Color, Color][], twist = false): Level {
-  const plates: Plate[] = [], screws: Screw[] = [], solution: string[] = [];
-  const trayOrder = pairs.flat();
-  if (twist && pairs.length > 1) [trayOrder[1], trayOrder[2]] = [trayOrder[2], trayOrder[1]];
-  pairs.forEach((pair, index) => {
-    const z = (pairs.length - index) * 0.22;
-    for (let side = 0; side < 2; side++) {
-      const plateId = `p${index}-${side}`;
-      const x = side === 0 ? -1.05 : 1.05;
-      const y = (index % 2 ? -0.15 : 0.15);
-      plates.push({id: plateId, shape: model, x, y, z, width: 2.5, height: 4.6,
-        rotation: (side === 0 ? -1 : 1) * (0.07 + index * 0.05), scale: 1,
-        layer: pairs.length - index, color: ['#dce9e3','#dae4f0','#e7deed','#ebe4d6'][index % 4]});
-      for (let slot = 0; slot < 3; slot++) {
-        const color = pair[(slot + side) % 2];
-        const anchor = MODEL_SCREW_ANCHORS[model][slot];
-        const localX = anchor[0] * 2.5 / 2, localY = anchor[1] * 4.6 / 2;
-        const rotation = plates[plates.length - 1].rotation;
-        screws.push({id: `s${index}-${side}-${slot}`, plateId, color,
-          x: x + localX * Math.cos(rotation) - localY * Math.sin(rotation),
-          y: y + localX * Math.sin(rotation) + localY * Math.cos(rotation), z: z + 0.14,
-          blockedBy: index === 0 ? [] : [`p${index - 1}-${side}`]});
-      }
-    }
-    pair.forEach(color => screws.filter(s => s.plateId.startsWith(`p${index}-`) && s.color === color).forEach(s => solution.push(s.id)));
+const palette = Object.keys(COLORS) as Color[];
+
+/** Build an explicit topological witness before assigning color groups. Each
+ * group is exactly three screws, spread over different accessible parts where
+ * possible. Four buckets cover the next twelve screws; exposed future colors
+ * compete for the five shelf slots, making free choices consequential. */
+function assemblyLevel(model: typeof OBJECT_MODELS[number], index: number): Level {
+  const plates: Plate[] = model.parts.map(part=>({
+    id:part.id, label:part.label, shape:model.id, primitive:part.primitive,
+    x:part.position[0], y:part.position[1], z:part.position[2],
+    width:part.size[0],height:part.size[1],size:part.size,
+    rotationX:part.rotation[0],rotationY:part.rotation[1],rotation:part.rotation[2],
+    scale:1,layer:part.stage,color:part.color,details:part.details,
+  }));
+  const screws: Screw[] = model.parts.flatMap(part=>part.anchors.map((anchor,slot)=>({
+    id:`${part.id}-s${slot}`,plateId:part.id,color:'coral' as Color,
+    x:anchor.position[0],y:anchor.position[1],z:anchor.position[2],
+    normal:anchor.normal,blockedBy:[...(anchor.blockedBy ?? part.blockedBy ?? [])],
+  })));
+  if (screws.length % 3 !== 0) throw new Error(`${model.id}: screw count must be divisible by three`);
+  const remaining = new Set(screws.map(s=>s.id));
+  const removedParts = new Set<string>();
+  const solution: string[]=[];
+  const removedPerPart = new Map<string,number>();
+  while (remaining.size) {
+    const candidates=screws.filter(s=>remaining.has(s.id)&&s.blockedBy.every(p=>removedParts.has(p)));
+    candidates.sort((a,b)=>(removedPerPart.get(a.plateId)??0)-(removedPerPart.get(b.plateId)??0));
+    const screw=candidates[0];
+    if (!screw) throw new Error(`${model.id}: cyclic assembly dependencies`);
+    remaining.delete(screw.id);solution.push(screw.id);
+    removedPerPart.set(screw.plateId,(removedPerPart.get(screw.plateId)??0)+1);
+    if (!screws.some(s=>s.plateId===screw.plateId&&remaining.has(s.id))) removedParts.add(screw.plateId);
+  }
+  const trayOrder: Color[]=[];
+  solution.forEach((id,i)=>{
+    const group=Math.floor(i/3);
+    // Offset each model's palette while retaining eight distinct screw colors.
+    const color=palette[(group+index*3)%palette.length];
+    screws.find(s=>s.id===id)!.color=color;
+    if (i%3===0) trayOrder.push(color);
   });
-  return {id, name, model, subtitle: id === 1 ? 'Match three screws to a colored tray. Other colors wait on the five-slot shelf.' : 'Look beneath each plate. Keep room on your shelf.', plates, screws, trayOrder, solution};
+  return {id:index+1,name:model.name,model:model.id,
+    subtitle:index===0 ? 'Drag to turn the model. Match three screws per bucket; keep the five-slot shelf clear.' : model.subtitle,
+    plates,screws,trayOrder,solution};
 }
 
-export const levels: Level[] = [
-  makeLevel(1, 'First Flight', 'rocket', [['coral','blue'],['mint','gold']]),
-  makeLevel(2, 'Butterfly Effect', 'butterfly', [['mint','violet'],['coral','gold'],['blue','pink']], true),
-  makeLevel(3, 'Slow & Steady', 'turtle', [['blue','gold'],['pink','mint'],['violet','coral']], true),
-  makeLevel(4, 'Gem Garden', 'gem', [['violet','pink'],['gold','blue'],['coral','mint']], true),
-  makeLevel(5, 'In Full Bloom', 'flower', [['pink','mint'],['blue','coral'],['gold','violet'],['mint','pink']], true),
-  makeLevel(6, 'Little Windmill', 'windmill', [['gold','coral'],['violet','blue'],['mint','pink'],['blue','gold']], true),
-  makeLevel(7, 'Reef Retreat', 'fish', [['mint','blue'],['pink','gold'],['coral','violet'],['gold','mint']], true),
-  makeLevel(8, 'Star Workshop', 'star', [['violet','gold'],['blue','mint'],['pink','coral'],['gold','blue']], true),
-];
+export const levels: Level[] = OBJECT_MODELS.map(assemblyLevel);
 export const LEVELS = levels;

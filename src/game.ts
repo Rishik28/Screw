@@ -1,6 +1,7 @@
 import { type Color, type Level } from './levels';
 export { COLORS } from './levels';
 export const BUFFER_CAPACITY = 5;
+export const ACTIVE_TRAY_COUNT = 4;
 export interface Tray { color: Color; count: number }
 export interface GameState {
   level: Level; removedIds: Set<string>; removedPlateIds: Set<string>;
@@ -13,9 +14,9 @@ export class Game {
   private history: {state: GameState; queueIndex: number}[] = [];
   constructor(public level: Level) { this.state = this.initial(); }
   private initial(): GameState {
-    this.queueIndex = Math.min(2, this.level.trayOrder.length);
+    this.queueIndex = Math.min(ACTIVE_TRAY_COUNT, this.level.trayOrder.length);
     return {level:this.level, removedIds:new Set(), removedPlateIds:new Set(),
-      trays:this.level.trayOrder.slice(0,2).map(color=>({color,count:0})),
+      trays:this.level.trayOrder.slice(0,ACTIVE_TRAY_COUNT).map(color=>({color,count:0})),
       buffer:[], completedTrays:0, moves:0, status:'playing'};
   }
   get canUndo() { return this.history.length > 0; }
@@ -32,6 +33,16 @@ export class Game {
     const search = new Game(this.level);
     search.state = this.clone();
     search.queueIndex = this.queueIndex;
+    // Most deviations still preserve the authored topological solution. Verify
+    // that continuation first, avoiding a combinatorial search on large models.
+    const reference = this.level.solution.filter(id=>!this.state.removedIds.has(id));
+    let referenceValid = true;
+    for (const id of reference) {
+      if (!search.selectScrew(id) || search.state.status === 'lost') { referenceValid=false; break; }
+    }
+    if (referenceValid && search.state.status === 'won')
+      return {screwId:reference[0],message:'Try the glowing screw. A clear path remains from here.'};
+    search.state = this.clone(); search.queueIndex = this.queueIndex; search.history=[];
     const failed = new Set<string>();
     const indices = new Map(this.level.screws.map((s,i)=>[s.id,i]));
     let visits = 0, bounded = false;
@@ -40,7 +51,7 @@ export class Game {
       if (search.state.status === 'won') return [];
       if (search.state.status === 'lost') return null;
       if (++visits > 12000 || Date.now() > deadline) { bounded=true; return null; }
-      const mask = [...search.state.removedIds].reduce((n,id)=>n+2**indices.get(id)!,0);
+      const mask = [...search.state.removedIds].reduce((n,id)=>n|(1n<<BigInt(indices.get(id)!)),0n);
       const key = `${mask}|${search.queueIndex}|${search.state.trays.map(t=>`${t.color}:${t.count}`).join(',')}|${[...search.state.buffer].sort().join(',')}`;
       if (failed.has(key)) return null;
       const active = new Set(search.state.trays.map(t=>t.color));

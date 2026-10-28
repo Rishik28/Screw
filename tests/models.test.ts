@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ShapeUtils, Vector2 } from 'three';
+import { ShapeUtils, Vector2, Vector3, Quaternion, Euler } from 'three';
 import { MODEL_CATALOG, getModelOutline } from '../src/models';
 import { levels } from '../src/levels';
+import { OBJECT_MODELS } from '../src/objects';
 
 test('every original model triangulates without losing its silhouette', () => {
   assert.ok(Object.keys(MODEL_CATALOG).length >= 6);
@@ -25,23 +26,39 @@ test('unknown model has a usable rectangular fallback', () => {
   assert.deepEqual(getModelOutline('unknown', 4, 2), [[-2, -1], [2, -1], [2, 1], [-2, 1]]);
 });
 
-test('every authored screw head fits inside its rotated plate silhouette', () => {
-  function inside(x: number, y: number, points: [number, number][]) {
-    let hit = false;
-    for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
-      const [a, b] = points[i], [c, d] = points[j];
-      if ((b > y) !== (d > y) && x < (c - a) * (y - b) / (d - b) + a) hit = !hit;
-    }
-    return hit;
-  }
+test('every 3D screw is attached to the exterior face of its own rotated part', () => {
   for (const level of levels) for (const screw of level.screws) {
     const plate = level.plates.find(p => p.id === screw.plateId)!;
-    const dx = screw.x - plate.x, dy = screw.y - plate.y;
-    const x = dx * Math.cos(plate.rotation) + dy * Math.sin(plate.rotation);
-    const y = -dx * Math.sin(plate.rotation) + dy * Math.cos(plate.rotation);
-    const outline = getModelOutline(plate.shape, plate.width * plate.scale, plate.height * plate.scale);
-    for (let angle = 0; angle < 2 * Math.PI; angle += Math.PI / 16) {
-      assert.ok(inside(x + Math.cos(angle) * .185, y + Math.sin(angle) * .185, outline), `level ${level.id}: ${screw.id} overhangs its plate`);
+    assert.ok(plate.size, `missing dimensions: ${plate.id}`);
+    const inverse = new Quaternion().setFromEuler(new Euler(plate.rotationX || 0, plate.rotationY || 0, plate.rotation)).invert();
+    const center = new Vector3(screw.x - plate.x, screw.y - plate.y, screw.z - plate.z).applyQuaternion(inverse).toArray();
+    const normal = new Vector3(...screw.normal!).applyQuaternion(inverse).toArray();
+    const axis = normal.findIndex(n => Math.abs(n) > .99);
+    assert.ok(axis >= 0, `${level.name}/${screw.id}: normal is not a face normal`);
+    assert.ok(Math.abs(Math.abs(center[axis]) - plate.size![axis] / 2 - .035) < 1e-6, `${screw.id}: not attached to face`);
+    assert.equal(Math.sign(center[axis]), Math.sign(normal[axis]), `${screw.id}: normal points inward`);
+    for (let i = 0; i < 3; i++) if (i !== axis) {
+      assert.ok(Math.abs(center[i]) + .16 <= plate.size![i] / 2 + 1e-6, `${level.name}/${screw.id}: cap overhangs part`);
+    }
+    if (plate.primitive === 'cylinder') {
+      assert.equal(axis, 1, `${screw.id}: unsupported cylinder attachment`);
+      for (let a = 0; a < 2 * Math.PI; a += Math.PI / 16) {
+        const x = (center[0] + Math.cos(a) * .16) / (plate.size![0] / 2);
+        const z = (center[2] + Math.sin(a) * .16) / (plate.size![2] / 2);
+        assert.ok(x * x + z * z <= 1 + 1e-6, `${level.name}/${screw.id}: cap overhangs circular face`);
+      }
+    }
+  }
+});
+
+test('physical per-anchor occlusion dependencies survive level generation', () => {
+  for (const level of levels) {
+    const model = OBJECT_MODELS.find(m => m.id === level.model)!;
+    assert.ok(level.screws.some(s => s.blockedBy.length), `${level.name}: no physical dependencies`);
+    for (const screw of level.screws) {
+      const part = model.parts.find(p => p.id === screw.plateId)!;
+      const index = Number(screw.id.split('-s').at(-1));
+      assert.deepEqual([...screw.blockedBy].sort(), [...(part.anchors[index].blockedBy || part.blockedBy)].sort(), screw.id);
     }
   }
 });
