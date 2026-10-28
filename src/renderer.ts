@@ -26,7 +26,10 @@ export class BoardRenderer {
   private yaw=.3;
   private pitch=.18;
   private viewSize=3.8;
-  private drag:{x:number;y:number;startX:number;startY:number;id?:string;moved:boolean}|null=null;
+  private drag:{pointerId:number;x:number;y:number;startX:number;startY:number;id?:string;moved:boolean}|null=null;
+  private pointers=new Map<number,{x:number;y:number}>();
+  private pinchDistance=0;
+  private zoom=1;
   constructor(private host:HTMLElement,private onSelect:(id:string)=>void){
     this.renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});this.renderer.setPixelRatio(Math.min(devicePixelRatio,2));this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;this.renderer.outputColorSpace=THREE.SRGBColorSpace;this.renderer.toneMapping=THREE.ACESFilmicToneMapping;
     this.renderer.domElement.className='game-canvas';this.renderer.domElement.setAttribute('aria-hidden','true');host.prepend(this.renderer.domElement);
@@ -34,16 +37,44 @@ export class BoardRenderer {
     const light=new THREE.DirectionalLight(0xffffff,2.4);light.position.set(-4,7,10);light.castShadow=true;light.shadow.mapSize.set(1024,1024);light.shadow.camera.left=-7;light.shadow.camera.right=7;light.shadow.camera.top=7;light.shadow.camera.bottom=-7;light.shadow.normalBias=.04;this.scene.add(light);
     const fill=new THREE.DirectionalLight(0xe0eaff,1);fill.position.set(6,1,-7);this.scene.add(fill);this.scene.add(this.assembly);
     document.addEventListener('click',this.suppressPointerClick,true);
-    host.addEventListener('pointerdown',this.pointerDown);host.addEventListener('pointermove',this.pointerMove);host.addEventListener('pointerup',this.pointerUp);host.addEventListener('pointercancel',()=>{this.drag=null;host.classList.remove('is-dragging');});
+    host.addEventListener('pointerdown',this.pointerDown);host.addEventListener('pointermove',this.pointerMove);host.addEventListener('pointerup',this.pointerUp);host.addEventListener('pointercancel',this.pointerCancel);host.addEventListener('wheel',this.wheel,{passive:false});
     host.addEventListener('keydown',event=>{if((event.target as HTMLElement).closest('button'))return;if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home'].includes(event.key)){event.preventDefault();if(event.key==='ArrowLeft')this.rotate(-1);if(event.key==='ArrowRight')this.rotate(1);if(event.key==='ArrowUp')this.pitch=Math.min(1.1,this.pitch+.25);if(event.key==='ArrowDown')this.pitch=Math.max(-1.1,this.pitch-.25);if(event.key==='Home')this.resetView();this.updateCamera();}});
     this.observer=new ResizeObserver(()=>this.resize());this.observer.observe(host);this.updateCamera();this.animate();
   }
   getView(){return {yaw:this.yaw,pitch:this.pitch};}
   rotate(direction:number){this.yaw+=direction*Math.PI/4;this.updateCamera();}
-  resetView(){this.yaw=.3;this.pitch=.18;this.updateCamera();}
-  private pointerDown=(event:PointerEvent)=>{if(event.button!==0||(event.target as HTMLElement).closest('.rotation-controls'))return;const target=(event.target as HTMLElement).closest<HTMLButtonElement>('[data-screw-id]');this.drag={x:event.clientX,y:event.clientY,startX:event.clientX,startY:event.clientY,id:target?.dataset.screwId,moved:false};this.host.setPointerCapture(event.pointerId);};
-  private pointerMove=(event:PointerEvent)=>{if(!this.drag)return;const dx=event.clientX-this.drag.x,dy=event.clientY-this.drag.y;this.drag.moved ||= Math.hypot(event.clientX-this.drag.startX,event.clientY-this.drag.startY)>6;if(this.drag.moved){this.yaw-=dx*.009;this.pitch=Math.max(-1.1,Math.min(1.1,this.pitch+dy*.009));this.host.classList.add('is-dragging');this.updateCamera();}this.drag.x=event.clientX;this.drag.y=event.clientY;};
-  private pointerUp=(event:PointerEvent)=>{if(!this.drag)return;const {moved,id}=this.drag;this.drag=null;this.host.classList.remove('is-dragging');if(this.host.hasPointerCapture(event.pointerId))this.host.releasePointerCapture(event.pointerId);if(!moved&&id&&this.buttons.get(id)?.disabled===false){this.suppressClickUntil=performance.now()+350;this.onSelect(id);}};
+  resetView(){this.yaw=.3;this.pitch=.18;this.zoom=1;this.resize();this.updateCamera();}
+  private setZoom(value:number){this.zoom=Math.max(.65,Math.min(3,value));this.resize();}
+  private pointerDistance(){const [a,b]=[...this.pointers.values()];return a&&b?Math.hypot(a.x-b.x,a.y-b.y):0;}
+  private wheel=(event:WheelEvent)=>{if((event.target as HTMLElement).closest('.rotation-controls'))return;event.preventDefault();this.setZoom(this.zoom*Math.exp(-event.deltaY*.001));};
+  private pointerDown=(event:PointerEvent)=>{
+    if((event.target as HTMLElement).closest('.rotation-controls')||(event.pointerType==='mouse'&&event.button!==0))return;
+    this.pointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
+    this.host.setPointerCapture(event.pointerId);
+    if(this.pointers.size===1){const target=(event.target as HTMLElement).closest<HTMLButtonElement>('[data-screw-id]');this.drag={pointerId:event.pointerId,x:event.clientX,y:event.clientY,startX:event.clientX,startY:event.clientY,id:target?.dataset.screwId,moved:false};}
+    else{this.drag=null;this.pinchDistance=this.pointerDistance();this.host.classList.add('is-dragging');this.suppressClickUntil=performance.now()+350;}
+  };
+  private pointerMove=(event:PointerEvent)=>{
+    if(!this.pointers.has(event.pointerId))return;
+    this.pointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
+    if(this.pointers.size>=2){const distance=this.pointerDistance();if(this.pinchDistance>0&&distance>0)this.setZoom(this.zoom*distance/this.pinchDistance);this.pinchDistance=distance;return;}
+    if(!this.drag||this.drag.pointerId!==event.pointerId)return;
+    const dx=event.clientX-this.drag.x,dy=event.clientY-this.drag.y;
+    this.drag.moved ||= Math.hypot(event.clientX-this.drag.startX,event.clientY-this.drag.startY)>6;
+    if(this.drag.moved){this.yaw-=dx*.009;this.pitch=Math.max(-1.1,Math.min(1.1,this.pitch+dy*.009));this.host.classList.add('is-dragging');this.updateCamera();}
+    this.drag.x=event.clientX;this.drag.y=event.clientY;
+  };
+  private endPointer(event:PointerEvent,cancelled:boolean){
+    if(!this.pointers.has(event.pointerId))return;
+    const wasPinching=this.pointers.size>1;
+    this.pointers.delete(event.pointerId);this.pinchDistance=0;
+    if(this.host.hasPointerCapture(event.pointerId))this.host.releasePointerCapture(event.pointerId);
+    const drag=this.drag;this.drag=null;
+    if(!this.pointers.size)this.host.classList.remove('is-dragging');
+    if(!cancelled&&!wasPinching&&drag?.pointerId===event.pointerId&&!drag.moved&&drag.id&&this.buttons.get(drag.id)?.disabled===false){this.suppressClickUntil=performance.now()+350;this.onSelect(drag.id);}
+  }
+  private pointerUp=(event:PointerEvent)=>this.endPointer(event,false);
+  private pointerCancel=(event:PointerEvent)=>this.endPointer(event,true);
   // A touch's compatibility click may target a dialog created by onSelect.
   // Consume that one pointer click globally, while preserving keyboard clicks.
   private suppressPointerClick=(event:MouseEvent)=>{if(event.detail>0&&performance.now()<this.suppressClickUntil){this.suppressClickUntil=0;event.preventDefault();event.stopImmediatePropagation();}};
@@ -63,7 +94,7 @@ export class BoardRenderer {
   }
   update(){this.dirty=true;if(!this.game)return;const state=this.game.state;for(const plate of this.plates)this.release(plate,state.removedPlateIds.has(plate.userData.plateId));for(const [id,object]of this.screws){this.release(object,state.removedIds.has(id));const button=this.buttons.get(id)!;button.disabled=!this.game.isAvailable(id)||state.status!=='playing';button.setAttribute('aria-label',`Remove ${state.level.screws.find(s=>s.id===id)!.color} screw${button.disabled?' (locked; remove connected parts first)':''}`);}this.positionButtons();}
   hint(id:string){this.dirty=true;this.hintId=id;const normal=this.normals.get(id);if(normal){this.yaw=Math.atan2(normal.x,normal.z);this.pitch=Math.asin(Math.max(-1,Math.min(1,normal.y)));this.updateCamera();}setTimeout(()=>{if(this.hintId===id){this.hintId='';this.dirty=true;}},3500);}
-  private resize(){this.dirty=true;const w=this.host.clientWidth,h=this.host.clientHeight;if(!w||!h)return;this.renderer.setSize(w,h,false);const halfY=Math.max(this.viewSize,this.viewSize*h/w);this.camera.left=-halfY*w/h;this.camera.right=halfY*w/h;this.camera.top=halfY;this.camera.bottom=-halfY;this.camera.updateProjectionMatrix();this.positionButtons();}
+  private resize(){this.dirty=true;const w=this.host.clientWidth,h=this.host.clientHeight;if(!w||!h)return;this.renderer.setSize(w,h,false);const halfY=Math.max(this.viewSize,this.viewSize*h/w)/this.zoom;this.camera.left=-halfY*w/h;this.camera.right=halfY*w/h;this.camera.top=halfY;this.camera.bottom=-halfY;this.camera.updateProjectionMatrix();this.positionButtons();}
   private positionButtons(){if(!this.game)return;this.assembly.updateMatrixWorld(true);for(const[id,group]of this.screws){const button=this.buttons.get(id)!;const normal=this.normals.get(id)!;const point=group.position.clone().addScaledVector(normal,.14);const eye=this.camera.getWorldDirection(new THREE.Vector3()).negate();let visible=group.visible&&!this.game.state.removedIds.has(id)&&normal.dot(eye)>.08;
       if(visible){const ndc=point.clone().project(this.camera);this.raycaster.setFromCamera(new THREE.Vector2(ndc.x,ndc.y),this.camera);this.raycaster.far=point.clone().sub(this.raycaster.ray.origin).dot(this.raycaster.ray.direction)-.04;visible=!this.raycaster.intersectObjects(this.plates.filter(p=>p.visible&&!this.game!.state.removedPlateIds.has(p.userData.plateId)),false).length;}
       button.hidden=!visible;const p=point.project(this.camera);button.style.left=`${(p.x+1)*50}%`;button.style.top=`${(-p.y+1)*50}%`;button.style.zIndex=String(80-Math.round(p.z*20));button.classList.toggle('is-hint',id===this.hintId);
