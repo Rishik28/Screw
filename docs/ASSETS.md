@@ -1,0 +1,11 @@
+# Model and asset provenance
+
+`public/assets/model-catalog.json` contains eight original polygon silhouettes created for this project: a rocket, butterfly, turtle, gem, flower, pinwheel, fish, and star. They are data for procedural models, rather than remote models that must be downloaded. Each outline can be extruded with a small bevel for a lightweight toy-like 3D piece. Coordinates use positive Y upward, center approximately at the origin, and a maximum extent of one unit in each direction. Renderers may flip Y for canvas coordinates. The optional `detail` is decorative and must not be used as collision geometry.
+
+The catalog is dedicated to the public domain under **CC0 1.0 Universal**: <https://creativecommons.org/publicdomain/zero/1.0/>. No attribution, purchase, account, or runtime network request is required to use it. There are no third-party textures, logos, brands, or downloaded model files in this catalog. The project's software license is separate.
+
+For mobile rendering, reuse geometry and materials, use flat colors, cap bevel segments, and keep screw hit targets larger than the visible screw head. Procedural screws can use a short cylinder, a wider beveled head, and two crossing recessed lines. Level designers should place screws on broad interior areas of each shape and verify their reachability independently of the decorative outlines.
+
+`src/models.ts` exposes the silhouettes and `MODEL_SCREW_ANCHORS` for synchronous rendering and level generation. The three anchors per shape were checked for interior placement, at least 0.85 units of separation, and at least 0.23 units of clearance from the outline for a 2.5 × 4.6 unit plate. This accommodates 0.18 unit screw heads. Scale and rotate anchors with their plate. All eight outlines have nonzero area and no intersecting nonadjacent edges. If silhouettes change, update both JSON and the typed helper, then repeat these checks.
+
+New external assets must include their source URL, author, exact license, and any required attribution here before inclusion. Prefer CC0 or CC BY 4.0; keep CC BY attribution accessible in the app. Avoid editorial-only, noncommercial, no-derivatives, or unclear licenses. Downloading a free model does not by itself grant redistribution rights.
