@@ -98,9 +98,9 @@ try {
     await rp.locator(`[data-screw-id="${id}"].is-hint`).waitFor({state:'visible'});
     await rp.locator(`[data-screw-id="${id}"]`).tap();
     assert.ok(await rp.locator('.score-popup').count()>0);
-    assert.equal(await rp.locator('.pixel-particle,.arcade-flash').count(),0,'reduced motion must suppress particles/flashes');
+    assert.ok(await rp.locator('.pixel-particle').count()>0,'full feedback must remain enabled with the OS reduce preference');
   }
   assert.equal(await rp.evaluate(()=>window.__game.state.completedTrays),1);
   await reduced.close();
-  console.log('PASS: reduced-motion score feedback without particles or flashes.');
+  console.log('PASS: full-motion score feedback remains active with the OS reduce preference.');
 }finally{await browser.close();}

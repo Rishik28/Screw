@@ -1,3 +1,5 @@
+> Current draft override: arcade cabinet controls and full impact feedback are enabled at the user’s explicit request. Reduced-motion handling described in earlier sections is disabled for now.
+
 # Screw Garden visual direction
 
 Use the approved dusty-blue camera mockup as the reference: a quiet, sparse,
@@ -96,3 +98,7 @@ The workshop is a quiet miniature room in the upgrade dialog: a workbench, then 
 ## Icon-led branch map
 
 Upgrade browsing uses a fixed-height dialog with four icon tabs: Workbench, Tools, Mastery, and Room. Each skill branch fits on a single screen, with SVG prerequisite connections and selectable icon nodes. Locked nodes remain inspectable. A fixed panel shows only the selected skill's short effect, XP threshold, scrap price and install state; selecting a node does not buy it. Installed/ready/locked states use checks, plus signs and locks as well as color. The Room tab preserves workshop restoration separately. All actions fit at 320×568 without scrolling. Mode tabs, game tools and currency use original SVG icons with short labels or accessible names. Preserve the sparse dusty-blue visual language and reduced-motion support.
+
+## Cabinet controls and pressure
+
+Give visible buttons a raised cap, inset upper highlight, dark lower rim and mechanical press travel. Preserve the hit regions on invisible screw targets and the fixed skill-tree layout. Stage shakes, camera punches and bucket bursts create a volatile, machine-like feel without adding scenery. A warm edge vignette signals low time or a nearly full shelf. Zoom punches last 260ms, restore the user’s inspection zoom and cancel on new board input. Keep particle counts bounded and flash events brief, at least 900ms apart.

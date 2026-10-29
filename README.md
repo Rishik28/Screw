@@ -23,7 +23,7 @@ npm run build # TypeScript checks and production bundle
 npm run preview
 ```
 
-For focused UI checks, use `npm run test:browser:smoke` (first level, pinch/rotation, extraction, progression, reduced motion, and WebGL fallback). Run the full campaign once before publishing changes to game rules or model geometry. Full browser regression checks use `npm run test:browser` against a running production preview. They require a locally installed Chromium browser; see the test script for executable and base-URL overrides. In the cloud environment Chromium is available at `/usr/bin/chromium`.
+For focused UI checks, use `npm run test:browser:smoke` (first level, pinch/rotation, extraction, progression, OS motion-preference override, and WebGL fallback). Run the full campaign once before publishing changes to game rules or model geometry. Full browser regression checks use `npm run test:browser` against a running production preview. They require a locally installed Chromium browser; see the test script for executable and base-URL overrides. In the cloud environment Chromium is available at `/usr/bin/chromium`.
 
 Deploy the generated `dist/` directory to a static web host. The game does not need a backend or API credentials.
 
@@ -49,7 +49,7 @@ Upgrades use an icon-based branching map with Workbench, Tools, and Mastery tabs
 
 XP, scrap, purchases, restoration, completed-model count, and the random deck save locally on this device. An active puzzle survives mode changes in the open page; reloading starts a new attempt while retaining banked earnings. Storage failures display a warning in the Workshop. No accounts, server, ads, or purchases are involved.
 
-Use `npm run test:workshop` against a local production preview for real-pointer/touch progression, rewards, failure, purchases, restoration, local save, charged tools, timer, reduced motion, and skill-tree accessibility checks.
+Use `npm run test:workshop` against a local production preview for real-pointer/touch progression, rewards, failure, purchases, restoration, local save, charged tools, timer, OS motion-preference override, and skill-tree accessibility checks.
 
 ## Classic
 
@@ -70,11 +70,11 @@ Choose **Arcade · score attack** above the buckets. Classic stays available, an
 - Undo and Hint each cost 2 seconds in Arcade. Undo also reverses the move's rewards. Both remain free in Classic.
 - Help pauses the clock. Backgrounding the game pauses it and asks you to resume on return. Best scores are stored only in your browser.
 
-Arcade adds bounded pixel bursts, score numbers, combo callouts, and brief bucket/model flashes. Reduced-motion mode keeps numeric feedback while suppressing particles and flashes. Classic keeps the quieter visual presentation. Both modes add brief impact shakes, screw tap pulses, slot-fill pops, and a completed-bucket squash/lift/replacement animation. New input cancels a shake; animations never delay the next move. Reduced motion uses a stationary completion check instead.
+Arcade adds bounded pixel bursts, score numbers, combo callouts, and brief bucket/model flashes. All modes now use full arcade feedback: stronger input-cancellable shakes, 260ms camera zoom punches, screw tap pulses, slot-fill pops, and completed-bucket squash/lift/replacement bursts. Raised cabinet-style buttons depress and rebound. Low time or a nearly full shelf adds a warm pressure vignette. Camera punches restore the player’s chosen model zoom and cancel on new board input. OS reduced-motion handling is intentionally disabled for this draft at the user’s request; all effects stay active. Flashes remain short and throttled.
 
-Run `npm run test:arcade` against a production preview for the timer, scoring, effects, recovery, mode switching, round transitions, and reduced-motion checks.
+Run `npm run test:arcade` against a production preview for the timer, scoring, effects, recovery, mode switching, round transitions, and full-motion override checks.
 
-Run `npm run test:tactile` against the preview for both modes’ fill animations, shake behavior, reduced motion, uninterrupted input, and Undo cleanup.
+Run `npm run test:tactile` against the preview for both modes’ fill animations, shake behavior, OS motion-preference override, uninterrupted input, and Undo cleanup.
 
 ## Develop and contribute
 
@@ -91,7 +91,7 @@ Run `npm run test:tactile` against the preview for both modes’ fill animations
 - `src/models.ts` and `public/assets/model-catalog.json`: original silhouette catalog retained for reuse.
 - `tests/`: automated checks.
 
-Keep new levels solvable and include a reference solution. Test touch targets and layout on small portrait screens, retain keyboard access, and respect reduced-motion preferences. Add model provenance and redistribution terms to [docs/ASSETS.md](docs/ASSETS.md) before introducing external assets. Do not add advertising, purchases, or tracking.
+Keep new levels solvable and include a reference solution. Test touch targets and layout on small portrait screens, retain keyboard access, and preserve the current explicit motion configuration. Add model provenance and redistribution terms to [docs/ASSETS.md](docs/ASSETS.md) before introducing external assets. Do not add advertising, purchases, or tracking.
 
 Each cloud task already runs in an isolated environment. Use the existing checkout; do not create a Git worktree unless explicitly requested.
 

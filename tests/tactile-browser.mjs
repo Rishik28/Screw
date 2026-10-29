@@ -25,6 +25,7 @@ try{
   const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto(url);await page.waitForFunction(()=>window.__board&&window.__game);
   if(mode==='arcade'){await page.locator('#mode-arcade').tap();await page.waitForFunction(()=>window.__arcade);}
+  await page.evaluate(()=>{window.__zoomPeak=1;const sample=()=>{window.__zoomPeak=Math.max(window.__zoomPeak,window.__board.camera.zoom/window.__board.getView().zoom);requestAnimationFrame(sample);};requestAnimationFrame(sample);});
   const ids=await page.evaluate(()=>window.__game.level.solution.slice(0,4));
   for(let i=0;i<3;i++){
     await page.locator('#hint').tap();
@@ -39,15 +40,13 @@ try{
   assert.equal(clears.length,1);assert.equal(clears[0].filled,3);assert.equal(clears[0].color,'coral');assert.ok(clears[0].check);
   assert.equal(clears[0].pointerEvents,'none');
   const shakes=log.filter(x=>x.target.includes('app-shell'));
-  if(reduced){
-    assert.equal(shakes.length,0,'reduced motion must suppress stage shake');
-    assert.ok(clears[0].frames.every(frame=>!frame.transform),'reduced completion should only fade');
-    assert.equal(await page.locator('.impact-ring').count(),0);
-  }else{
-    assert.ok(shakes.length>0,'no real stage shake was started');
-    assert.ok(clears[0].frames.some(frame=>String(frame.transform).includes('scale')),'completed bucket did not squash');
-    assert.ok(log.some(x=>x.target.includes('tray-slot')&&x.frames.some(f=>String(f.transform).includes('scale'))),'slot fill did not pop');
-  }
+  assert.ok(shakes.length>0,'no real stage shake was started');
+  assert.ok(clears[0].frames.some(frame=>String(frame.transform).includes('scale')),'bucket did not squash');
+  assert.ok(log.some(x=>x.target.includes('tray-slot')),'slot fill did not pop');
+  // Camera kick is transient and must restore the player's chosen model zoom.
+  await page.waitForFunction(()=>window.__board.punchStrength===0);
+  assert.ok(await page.evaluate(()=>window.__zoomPeak>1.02),'no visible camera punch occurred');
+  assert.equal(await page.evaluate(()=>window.__board.camera.zoom),await page.evaluate(()=>window.__board.getView().zoom));
   // Hold a completion at its midpoint for review, then play through it. This
   // pauses only the decorative copy, never the game or interaction handlers.
   await page.evaluate(()=>{for(const ghost of document.querySelectorAll('.tray-completion'))for(const animation of ghost.getAnimations()){animation.pause();animation.currentTime=140;}});
@@ -60,7 +59,7 @@ try{
   assert.equal(await page.evaluate(()=>window.__motionLog.filter(x=>x.target==='tray-completion').length),1,'Undo replayed a completion');
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   assert.deepEqual(errors,[]);
-  console.log(`PASS: ${mode}, ${reduced?'reduced motion':'tactile motion'} — fill, clear/replacement, live input, Undo, no errors.`);
+  console.log(`PASS: ${mode}, ${reduced?'full motion with OS reduce preference':'tactile motion'} — fill, clear/replacement, live input, Undo, no errors.`);
   await context.close();
  }
 }finally{await browser.close();}

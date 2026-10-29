@@ -89,7 +89,7 @@ try{
     const count=await page.evaluate(()=>window.__workshop.autoFillIds.length);assert.ok(count);
     await page.locator('#magnet').tap();await page.waitForFunction(n=>window.__game.state.moves===n,count);
     assert.equal(await page.evaluate(()=>window.__workshop.charges),0);
-    if(reduced){assert.equal(await page.locator('.pixel-particle,.salvage-chip,.impact-ring,.arcade-flash').count(),0);}
+    if(reduced){assert.ok(await page.locator('.pixel-particle,.salvage-chip,.impact-ring').count()>0,'full feedback remains enabled');}
     await page.locator('#hint').tap();assert.equal(await page.evaluate(()=>window.__workshop.hintCharges),2);
     assert.match(await page.locator('.status-line').innerText(),/Look for/);
     await page.locator('#restart').tap();await page.getByRole('button',{name:'End & keep earnings',exact:true}).tap();
@@ -101,7 +101,7 @@ try{
     await page.clock.fastForward(await page.evaluate(()=>window.__workshop.limitMs+100));
     await page.getByRole('heading',{name:'Time’s up',exact:true}).waitFor();
     assert.equal(await page.evaluate(()=>window.__workshop.rewards.speed.xp),0);
-    console.log(`PASS: ${reduced?'reduced motion':'full effects'}, charged auto-fill, limited part survey, abandon/retry earnings, timeout without completion bonus.`);
+    console.log(`PASS: ${reduced?'full effects with OS reduce preference':'full effects'}, charged auto-fill, limited part survey, abandon/retry earnings, timeout without completion bonus.`);
     await context.close();
   }
   {

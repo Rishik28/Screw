@@ -53,7 +53,10 @@ export class BoardRenderer {
   private exploreUntil=0;
   private suppressClickUntil=0;
   private exits=new Map<THREE.Object3D,{start:number;position:THREE.Vector3;quaternion:THREE.Quaternion;normal:THREE.Vector3|null}>();
-  private reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  private reducedMotion=false; // Full feedback is enabled for this arcade build.
+  private punchStart=0;
+  private punchStrength=0;
+  private impactFeedback=(event:Event)=>this.punch((event as CustomEvent<number>).detail);
   private yaw=.3;
   private pitch=.18;
   private fitWidth=3.8;
@@ -77,16 +80,19 @@ export class BoardRenderer {
     document.addEventListener('click',this.suppressPointerClick,true);
     host.addEventListener('pointerdown',this.pointerDown);host.addEventListener('pointermove',this.pointerMove);host.addEventListener('pointerup',this.pointerUp);host.addEventListener('pointercancel',this.pointerCancel);
     host.addEventListener('wheel',this.wheel,{passive:false});
+    host.addEventListener('game-impact',this.impactFeedback);
     host.addEventListener('keydown',event=>{if((event.target as HTMLElement).closest('button'))return;if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home'].includes(event.key)){event.preventDefault();if(event.key==='ArrowLeft')this.rotate(-1);if(event.key==='ArrowRight')this.rotate(1);if(event.key==='ArrowUp')this.pitch=Math.min(Math.PI/2,this.pitch+.25);if(event.key==='ArrowDown')this.pitch=Math.max(-Math.PI/2,this.pitch-.25);if(event.key==='Home')this.resetView();this.updateCamera();}});
     this.observer=new ResizeObserver(()=>this.resize());this.observer.observe(host);this.updateCamera();this.animate();
   }
+  punch(strength=2){this.punchStart=performance.now();this.punchStrength=Math.min(.16,.035+Math.max(0,strength)*.02);this.dirty=true;}
+  private cancelPunch(){if(!this.punchStrength)return;this.punchStrength=0;this.camera.zoom=this.zoom;this.camera.updateProjectionMatrix();this.dirty=true;this.positionButtons();}
   setArcade(enabled:boolean){this.arcade=enabled;}
   isExploring(){return this.pointers.size>1||!!this.drag?.moved||performance.now()<this.exploreUntil;}
   screenPoint(id:string){const b=this.buttons.get(id);return {x:b?parseFloat(b.style.left)/100*this.host.clientWidth:this.host.clientWidth/2,y:b?parseFloat(b.style.top)/100*this.host.clientHeight:this.host.clientHeight/2};}
   getView(){return {yaw:this.yaw,pitch:this.pitch,zoom:this.zoom,panX:this.pan.x,panY:this.pan.y};}
   rotate(direction:number){this.exploreUntil=performance.now()+200;this.yaw+=direction*Math.PI/4;this.updateCamera();}
   resetView(){this.pan.set(0,0);this.yaw=.3;this.pitch=.18;this.setZoom(1);this.updateCamera();}
-  private setZoom(value:number,project=true){this.zoom=Math.max(.65,Math.min(2.2,value));this.camera.zoom=this.zoom;this.camera.updateProjectionMatrix();this.dirty=true;if(project)this.positionButtons();}
+  private setZoom(value:number,project=true){this.punchStrength=0;this.zoom=Math.max(.65,Math.min(2.2,value));this.camera.zoom=this.zoom;this.camera.updateProjectionMatrix();this.dirty=true;if(project)this.positionButtons();}
   private beginPinch(){
     const [a,b]=[...this.pointers.values()];
     this.pinch=a&&b?{distance:Math.max(1,Math.hypot(a.x-b.x,a.y-b.y)),zoom:this.zoom,
@@ -96,6 +102,7 @@ export class BoardRenderer {
   }
   private pointerDown=(event:PointerEvent)=>{
     if(event.button!==0||(event.target as HTMLElement).closest('.rotation-controls'))return;
+    this.cancelPunch();
     if(this.pointers.size===0)this.pinchLocked=false;
     this.pointers.set(event.pointerId,{x:event.clientX,y:event.clientY});this.host.setPointerCapture(event.pointerId);
     if(this.pointers.size>=2){this.pinchLocked=true;this.drag=null;this.beginPinch();this.host.classList.add('is-dragging');return;}
@@ -208,6 +215,12 @@ export class BoardRenderer {
   }
   private animate=()=>{
     this.frame=requestAnimationFrame(this.animate);
+    if(this.punchStrength){
+      const t=Math.min(1,(performance.now()-this.punchStart)/260);
+      this.camera.zoom=this.zoom*(1+this.punchStrength*Math.sin(Math.PI*t));
+      if(t>=1){this.punchStrength=0;this.camera.zoom=this.zoom;}
+      this.camera.updateProjectionMatrix();this.dirty=true;
+    }
     for(const[object,exit]of this.exits){if(!object.visible)continue;this.dirty=true;const p=Math.max(0,Math.min(1,(performance.now()-exit.start)/(this.arcade?260:600)));
       if(exit.normal){object.position.copy(exit.position).addScaledVector(exit.normal,p*.9);object.quaternion.copy(exit.quaternion).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),p*Math.PI*4));}
       else {
@@ -218,5 +231,5 @@ export class BoardRenderer {
     }
     if(this.dirty){this.positionButtons();this.renderer.render(this.scene,this.camera);this.dirty=false;}
   };
-  dispose(){this.host.removeEventListener('pointerdown',this.pointerDown);this.host.removeEventListener('pointermove',this.pointerMove);this.host.removeEventListener('pointerup',this.pointerUp);this.host.removeEventListener('pointercancel',this.pointerCancel);this.host.removeEventListener('wheel',this.wheel);document.removeEventListener('click',this.suppressPointerClick,true);cancelAnimationFrame(this.frame);this.observer.disconnect();this.surfaceMap.dispose();this.shadowMap.dispose();this.floor.geometry.dispose();this.floor.material.dispose();this.groundShadow.geometry.dispose();this.groundShadow.material.dispose();this.renderer.dispose();}
+  dispose(){this.host.removeEventListener('game-impact',this.impactFeedback);this.host.removeEventListener('pointerdown',this.pointerDown);this.host.removeEventListener('pointermove',this.pointerMove);this.host.removeEventListener('pointerup',this.pointerUp);this.host.removeEventListener('pointercancel',this.pointerCancel);this.host.removeEventListener('wheel',this.wheel);document.removeEventListener('click',this.suppressPointerClick,true);cancelAnimationFrame(this.frame);this.observer.disconnect();this.surfaceMap.dispose();this.shadowMap.dispose();this.floor.geometry.dispose();this.floor.material.dispose();this.groundShadow.geometry.dispose();this.groundShadow.material.dispose();this.renderer.dispose();}
 }

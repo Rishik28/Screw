@@ -37,20 +37,20 @@ export class GameEffects {
     }
   }
   shake(strength: number) {
-    if (!strength || matchMedia('(prefers-reduced-motion: reduce)').matches || performance.now()-this.lastShake < 70) return;
+    if (!strength || performance.now()-this.lastShake < 70) return;
     this.lastShake = performance.now(); this.stopShake();
-    const amount = Math.min(5, strength);
+    const amount = Math.min(9, strength*1.65);
     const animation = this.screen.animate([
       {transform:'translate(0,0)'},
       {transform:`translate(${-amount}px,${amount*.45}px)`,offset:.2},
       {transform:`translate(${amount*.7}px,${-amount*.25}px)`,offset:.45},
-      {transform:`translate(${-amount*.3}px,0)`,offset:.7},
+      {transform:`translate(${-amount*.55}px,${amount*.3}px)`,offset:.65},
+      {transform:`translate(${amount*.25}px,${-amount*.15}px)`,offset:.82},
       {transform:'translate(0,0)'},
-    ], {duration:amount>2?190:120,easing:'ease-out'});
+    ], {duration:amount>4?240:150,easing:'ease-out'});
     this.activeShake = animation; this.track(animation);
   }
   impact(point: Point, color: string, strength: number) {
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const ring = this.node('impact-ring', point);
     ring.style.borderColor = color;
     this.animate(ring, [
@@ -58,20 +58,20 @@ export class GameEffects {
       {transform:'translate(-50%,-50%) scale(1.55)',opacity:0},
     ], 230);
     this.shake(strength);
+    this.host.dispatchEvent(new CustomEvent('game-impact',{detail:strength}));
   }
   press(button: HTMLElement) {
-    if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
-    this.track(button.animate([{scale:'1'},{scale:'.94',offset:.35},{scale:'1'}],{duration:170,easing:'ease-out'}));
+    this.track(button.animate([{scale:'1',translate:'0 0'},{scale:'.93',translate:'0 3px',offset:.25},{scale:'1.025',translate:'0 -1px',offset:.7},{scale:'1',translate:'0 0'}],{duration:220,easing:'ease-out'}));
   }
   upgrade() {
     const node=document.querySelector('.workshop-scene');
-    if(!node||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+    if(!node)return;
     this.track(node.animate([{filter:'brightness(1)'},{filter:'brightness(1.3)',offset:.3},{filter:'brightness(1)'}],{duration:450}));
   }
   salvage(point: Point, color: string, text: string, part: boolean) {
     this.impact(point,color,part?3.5:1.8);
     this.burst(point,color,text,part);
-    if(!matchMedia('(prefers-reduced-motion: reduce)').matches){
+    {
       const rect=this.host.getBoundingClientRect();
       const destination=document.querySelector('#wallet')?.getBoundingClientRect();
       if(destination)for(let i=0;i<3;i++){
@@ -91,7 +91,7 @@ export class GameEffects {
     });
   }
   buckets(before: ReturnType<GameEffects['captureBuckets']>, clears: TrayClear[], arcade: boolean) {
-    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const reduced = false; // Full arcade feedback is intentionally enabled for this build.
     const current = Array.from(this.screen.querySelectorAll<HTMLElement>('.tray-row > .tray'));
     if (!reduced) for (let i=0; i<current.length; i++) {
       const node=current[i], previous=before[i];
@@ -126,12 +126,15 @@ export class GameEffects {
         {transform:'translateY(0) scale(1)',opacity:1},
       ],{duration:arcade?200:280,delay:arcade?90:150,easing:'ease-out'}));
     }
-    if (clears.length) this.shake(arcade?4:2.8);
+    if (clears.length) {
+      this.shake(6);this.host.dispatchEvent(new CustomEvent('game-impact',{detail:6}));
+      this.burst({x:this.host.clientWidth/2,y:this.host.clientHeight*.24},COLORS[clears[0].color],'BUCKET CLEAR',true);
+    }
   }
   burst(point: Point, color: string, text: string, big = false, penalty = false) {
-    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const reduced = false; // Full arcade feedback is intentionally enabled for this build.
     if (!reduced) {
-      const count = big ? 28 : 9;
+      const count = big ? 36 : 12;
       for (let i = 0; i < count && this.live.size < 110; i++) {
         const pixel = this.node('pixel-particle', point);
         pixel.style.background = i % 3 ? color : '#f3e6bb';
@@ -142,14 +145,14 @@ export class GameEffects {
           {transform:`translate(calc(-50% + ${Math.cos(angle)*speed}px), calc(-50% + ${Math.sin(angle)*speed+35}px))`, opacity:0},
         ], big ? 650 : 450);
       }
-      if (big && !penalty && performance.now() - this.lastFlash > 700) {
+      if (big && !penalty && performance.now() - this.lastFlash > 900) {
         this.lastFlash = performance.now();
         const flash = this.node('arcade-flash', {x:0,y:0});
         flash.style.left = '0'; flash.style.top = '0';
         this.animate(flash, [{opacity:.22}, {opacity:0}], 150);
       }
     }
-    // Numeric feedback remains available without travel, particles, or flashes.
+    // Numeric feedback remains readable over the short-lived impact effects.
     const popup = this.node(`score-popup${big ? ' is-big' : ''}${penalty ? ' is-penalty' : ''}`, point);
     popup.textContent = text;
     this.animate(popup, reduced

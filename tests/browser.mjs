@@ -303,12 +303,12 @@ try {
   await reducedPage.locator('#hint').tap();
   await reducedPage.locator(`[data-screw-id="${reducedId}"]`).tap();
   assert.equal(await reducedPage.evaluate(id=>window.__game.state.removedIds.has(id),reducedId),true);
-  assert.equal((await readReducedPose()).visible,false,'reduced-motion extraction should finish immediately');
+  await reducedPage.waitForFunction(id=>!window.__board.screws.get(id).visible,reducedId);
   await reducedPage.locator('#undo').tap();
-  assert.deepEqual(await readReducedPose(),reducedBase,'reduced-motion Undo did not restore attached pose');
+  assert.deepEqual(await readReducedPose(),reducedBase,'full-motion Undo did not restore attached pose');
   assert.deepEqual(reducedErrors,[]);
   await reduced.close();
-  console.log('PASS: reduced-motion extraction and exact Undo restoration');
+  console.log('PASS: full extraction remains active with OS reduce preference, exact Undo restoration');
   const fallback = await browser.newContext();
   await fallback.addInitScript(() => {
     const original = HTMLCanvasElement.prototype.getContext;

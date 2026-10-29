@@ -90,7 +90,6 @@ h1 { margin: 0; font-size: 12px; line-height: 1.4; font-weight: normal; color: v
 .render-error { padding: 30px 15px; color: var(--muted); font-size: 12px; line-height: 1.8; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 @media (max-width: 360px) { .app-shell { padding-left: 16px; padding-right: 16px; } .brand { font-size: 15px; } .header-actions { gap: 3px; } .tray-slots { gap: 3px; } .tool-button { font-size: 10px; gap: 6px; } }
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; } }
 
 /* Arcade keeps the quiet scene; energy comes from precise, short-lived feedback. */
 .mode-tabs { display: flex; gap: 12px; margin: -8px 0 10px; }
@@ -157,7 +156,6 @@ h1 { margin: 0; font-size: 12px; line-height: 1.4; font-weight: normal; color: v
 .reward-total { color: #f4dfa4; }
 .salvage-chip { position: absolute; width: 7px; height: 7px; border: 1px solid #eee4be; }
 @media (max-height: 760px) { .is-workshop .board-wrap { min-height: 220px; }.is-workshop .workshop-wallet { padding: 4px 0; min-height: 30px; }.is-workshop .workshop-hud { margin-bottom: 4px; } }
-@media (prefers-reduced-motion: reduce) { button:active:not(:disabled) { outline: 1px solid #f4d379; } }
 
 
 
@@ -216,3 +214,41 @@ h1 { margin: 0; font-size: 12px; line-height: 1.4; font-weight: normal; color: v
 #wallet { display: flex; align-items: center; gap: 5px; }
 #wallet .ui-icon { width: 14px; height: 14px; }
 .wallet-divider { color: #c8d2d766; padding: 0 5px; }
+
+/* Arcade cabinet: raised caps, inset bezels, and a visible press travel. */
+button:not(.screw-target) {
+ border: 1px solid #b7c8cf80; border-bottom-color: #213a4c;
+ border-radius: 9px; background: linear-gradient(#6e879b,#506b82);
+ box-shadow: inset 0 2px 0 #d1dce35c,inset 0 -3px 0 #2b45588c,0 4px 0 #263f52,0 6px 0 2px #21384a66;
+ text-shadow: 0 1px 1px #243e5070; transition: filter 90ms,box-shadow 90ms;
+}
+button:not(.screw-target):hover:not(:disabled) { filter: brightness(1.12); }
+button:not(.screw-target):active:not(:disabled) { box-shadow: inset 0 2px 4px #233f5877,0 1px 0 #263f52; }
+button:not(.screw-target):disabled { filter: saturate(.45); opacity: .55; }
+.mode-tabs { gap: 8px; margin-bottom: 14px; }
+.mode-tab { min-height: 44px; }
+.mode-tab[aria-pressed="true"],.tree-tabs button[aria-pressed="true"] { background: linear-gradient(#c7b67e,#a38e59); color: #263c4b; border-color: #e6d6a2; box-shadow: inset 0 2px 0 #fff0c56e,inset 0 -3px 0 #72633e88,0 4px 0 #293e49; }
+.tool-button { margin-bottom: 5px; min-height: 49px; }
+.icon-button,.rotate-button,#workshop-back { border-radius: 50% !important; width: 40px; min-width: 40px; height: 40px; }
+.icon-button { margin-left: 5px; }
+.level-pill { padding: 0 10px; }
+.rotation-controls { right: 8px; gap: 8px; bottom: 12px; }
+.rotate-button { min-height: 40px; }
+.workshop-wallet { border-radius: 7px !important; padding: 8px 10px !important; margin-bottom: 10px; }
+.tree-tabs { gap: 7px; padding-bottom: 6px; }
+.tree-tabs button { border-radius: 8px; padding: 6px 2px; }
+.skill-orb { border-radius: 50% !important; background: radial-gradient(circle at 35% 25%,#8ba1ad,#4a687f 72%) !important; }
+.skill-orb.is-owned { background: radial-gradient(circle at 35% 25%,#a8cab6,#4a806c 72%) !important; }
+.skill-orb.is-ready { background: radial-gradient(circle at 35% 25%,#b7b38b,#7b7958 72%) !important; }
+.skill-orb[aria-pressed="true"] { outline-offset: 3px; }
+.tree-modal > .primary-button,.skill-buy { background: linear-gradient(#e0d5a8,#b5a46f) !important; color: #263c4b; }
+.tree-modal > .secondary-button { background: linear-gradient(#966f66,#75574f); }
+.tree-modal { grid-template-rows: 26px minmax(0,1fr) 48px; }
+.node-state { padding: 1px; }
+.node-rank { background: #3d5668; border-radius: 3px; padding: 0 2px; }
+@media (max-height: 650px) { .tree-modal { grid-template-rows: 0 minmax(0,1fr) 46px; }.tree-tabs button { min-height: 44px; }.tree-map { min-height: 134px; margin: 6px 0; } }
+.icon-button,.rotate-button,#workshop-back { width: 44px; min-width: 44px; height: 44px; background: linear-gradient(#7c91a1,#4a647a) !important; }
+.board-wrap::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 120; opacity: 0; box-shadow: inset 0 0 36px #d7774c66; border: 2px solid #db986555; transition: opacity 180ms; }
+.board-wrap.is-critical::after { opacity: 1; animation: pressure-breathe 1s ease-in-out infinite alternate; }
+@keyframes pressure-breathe { from { box-shadow: inset 0 0 20px #d7774c33; } to { box-shadow: inset 0 0 48px #d7774c77; } }
+@media (max-height: 650px) { .tree-modal .tree-footnote { display: none; }.tree-map { margin: 5px 0; } }

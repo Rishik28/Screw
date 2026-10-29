@@ -1,5 +1,14 @@
 # Screw Garden handoff
 
+## Cabinet controls and explosive feedback release
+
+The user explicitly authorized publishing this release on October 29, 2026; baseline `0e4ffc6`. The user requested raised arcade cabinet buttons, stronger shakes, quick zoom-ins, and intentionally disabled reduced-motion handling for now. This supersedes the historical reduced-motion requirements below. This authorization covers this release only; future publication requires a new request.
+
+All visible controls except invisible screw hit targets have raised caps/rims and press/rebound feedback. `BoardRenderer` consumes `game-impact` events for a bounded 260ms camera zoom punch; it restores base zoom and cancels on new board pointer input. Stronger stage shakes still cancel on new input. Bucket clears add pixel explosions and a callout in all modes. Low time/nearly full shelf adds a warm edge vignette. No game rules or persistent state format changed. Effects remain bounded; brief flashes are throttled to at least 900ms apart.
+
+Reduced-motion guards in effects/renderer are intentionally disabled, and the CSS override is removed. Tests must assert full motion with both OS preferences, not immediate disappearance or suppressed particles. `test:tactile` observes actual camera zoom peaks/restoration plus shake/bucket animations and continued input. `test:tree` verifies cabinet styling still fits 320×568 without scrolling. Validation passes: 58 unit tests, production build, tree layout, tactile effects (including measured zoom peaks and exact zoom restoration), Arcade, and full Workshop integration. Both OS motion preferences exercise full feedback.
+
+
 ## Icon GUI and fixed branch tree release
 
 The user requested an icon-led GUI and branching upgrades without scrolling, then explicitly authorized publishing this update on October 29, 2026. Baseline is Workshop release `616db6e`. This authorization covers this release; future publishing requires a new request.

@@ -138,8 +138,13 @@ function backToClassic() {
   saveBest(); stopClock(); clearTransition(); effects.clear(); arcade = null; workshop = null; needsResume = false;
   game = classicGame; bindGame();
 }
+function refreshPressure(){
+  const tense=game.state.status==='playing'&&(game.state.buffer.length>=game.bufferCapacity-1||!!arcade&&arcade.remainingMs<10000||!!workshop&&workshop.remainingMs<30000);
+  $('.board-wrap').classList.toggle('is-critical',tense);
+}
 function refreshArcade() {
   if (!arcade) return;
+  refreshPressure();
   const text = (selector: string, value: string) => { const node = $(selector); if (node.textContent !== value) node.textContent = value; };
   text('#arcade-score', String(arcade.score).padStart(6, '0'));
   text('#arcade-time', (arcade.remainingMs / 1000).toFixed(1));
@@ -208,6 +213,7 @@ function select(id: string) {
 }
 function update(message?: string) {
   const state = game.state;
+  refreshPressure();
   $('#level-name').textContent = state.level.name;
   $('.gesture-note').textContent = arcade ? 'drag · pinch' : `${state.level.screws.length-state.removedIds.size} screws left`;
   $('.gesture-note').title = 'Drag to turn, pinch to zoom, move two fingers together to pan';
@@ -323,6 +329,7 @@ const toolMarkup=new WeakMap<HTMLElement,string>();
 function setTool(selector:string,html:string){const node=$(selector);if(toolMarkup.get(node)!==html){node.innerHTML=html;toolMarkup.set(node,html);}}
 function refreshWorkshop() {
   if(!workshop)return;
+  refreshPressure();
   const wallet=`${icon('star')}${profile.xp.toLocaleString()} <span class="wallet-divider">/</span> ${icon('scrap')}${profile.scrap.toLocaleString()}`;
   setTool('#wallet',wallet);
   $('#wallet').setAttribute('aria-label',`${profile.xp} XP, ${profile.scrap} scrap`);
