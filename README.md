@@ -33,7 +33,7 @@ The `Publish game` workflow builds and updates the `gh-pages` branch on every pu
 
 For a manual static build with portable asset paths, use `npm run build -- --base=./`.
 
-## Play
+## Classic
 
 Tap the puzzle counter beside the model name to open the collection. Select any model to play or replay; cancel to keep your current attempt.
 
@@ -41,8 +41,25 @@ Drag to rotate the assembly and inspect every side. Pinch with two fingers insid
 
 Removing every screw from a structural part releases it and reveals the assembly beneath. Screws on hidden faces must be rotated into view. Clear all screws and buckets to finish the puzzle. Progress to the current level is saved locally in your browser. The campaign uses eight original multipart objects: a chalet, lighthouse, windmill, locomotive, camera, moon rover, clocktower hall, and city tram. Levels grow from 24 to 48 screws, with eight vivid screw colors, branching part dependencies, and a five-slot shelf that rewards planning. Hints verify a winning continuation and turn the model toward the suggested screw.
 
+## Arcade
+
+Choose **Arcade · score attack** above the buckets. Classic stays available, and switching back restores its current attempt.
+
+- Start with 45 seconds. Each cleared bucket adds 3 seconds; the clock holds at most 60 seconds and a run ends after 90 active seconds.
+- Compact rounds keep every structural part but use 18–24 screws. Clearing a model automatically loads the next one.
+- Earn 100 points per screw, 300 per bucket, and 500 per model, multiplied by your combo (up to ×5). Remove screws within 2 seconds to keep the chain; turning grants up to 0.8 seconds of grace per gap. Misses reset the chain.
+- Shelf overflow costs 5 seconds and rewinds enough moves to free space. Rewound score and time rewards are reversed, so no colors are discarded and puzzles stay solvable.
+- Undo and Hint each cost 2 seconds in Arcade. Undo also reverses the move's rewards. Both remain free in Classic.
+- Help pauses the clock. Backgrounding the game pauses it and asks you to resume on return. Best scores are stored only in your browser.
+
+Arcade adds bounded pixel bursts, score numbers, combo callouts, and brief bucket/model flashes. Reduced-motion mode keeps numeric feedback while suppressing particles and flashes. Classic keeps the quieter visual presentation.
+
+Run `npm run test:arcade` against a production preview for the timer, scoring, effects, recovery, mode switching, round transitions, and reduced-motion checks.
+
 ## Develop and contribute
 
+- `src/arcade.ts`: compact rounds, score/combo clock, penalties, and reversible rewards.
+- `src/effects.ts`: bounded pixel particles, numbers, and flashes.
 - `src/game.ts`: game state, tray and shelf rules, undo, and restart.
 - `src/levels.ts`: authored levels and reference solution sequences.
 - `src/renderer.ts`: Three.js scene, model rendering, and screw interaction.

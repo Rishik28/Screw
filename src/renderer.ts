@@ -49,6 +49,8 @@ export class BoardRenderer {
   private frame=0;
   private dirty=true;
   private hintId='';
+  private arcade=false;
+  private exploreUntil=0;
   private suppressClickUntil=0;
   private exits=new Map<THREE.Object3D,{start:number;position:THREE.Vector3;quaternion:THREE.Quaternion;normal:THREE.Vector3|null}>();
   private reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -62,7 +64,7 @@ export class BoardRenderer {
   private pinch:{distance:number;zoom:number}|null=null;
   private pinchLocked=false;
   private drag:{x:number;y:number;startX:number;startY:number;id?:string;moved:boolean}|null=null;
-  constructor(private host:HTMLElement,private onSelect:(id:string)=>void){
+  constructor(private host:HTMLElement,private onSelect:(id:string)=>void,private onMiss:()=>void=()=>{}){
     this.renderer=new THREE.WebGLRenderer({antialias:false,alpha:false});this.renderer.setPixelRatio(1);this.renderer.shadowMap.enabled=false;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;this.renderer.outputColorSpace=THREE.SRGBColorSpace;this.renderer.toneMapping=THREE.NoToneMapping;
     this.renderer.domElement.className='game-canvas';this.renderer.domElement.setAttribute('aria-hidden','true');host.prepend(this.renderer.domElement);
     this.scene.add(new THREE.HemisphereLight(0xe6e3d9,0x607084,1.8));
@@ -77,8 +79,11 @@ export class BoardRenderer {
     host.addEventListener('keydown',event=>{if((event.target as HTMLElement).closest('button'))return;if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home'].includes(event.key)){event.preventDefault();if(event.key==='ArrowLeft')this.rotate(-1);if(event.key==='ArrowRight')this.rotate(1);if(event.key==='ArrowUp')this.pitch=Math.min(1.1,this.pitch+.25);if(event.key==='ArrowDown')this.pitch=Math.max(-1.1,this.pitch-.25);if(event.key==='Home')this.resetView();this.updateCamera();}});
     this.observer=new ResizeObserver(()=>this.resize());this.observer.observe(host);this.updateCamera();this.animate();
   }
+  setArcade(enabled:boolean){this.arcade=enabled;}
+  isExploring(){return this.pointers.size>1||!!this.drag?.moved||performance.now()<this.exploreUntil;}
+  screenPoint(id:string){const b=this.buttons.get(id);return {x:b?parseFloat(b.style.left)/100*this.host.clientWidth:this.host.clientWidth/2,y:b?parseFloat(b.style.top)/100*this.host.clientHeight:this.host.clientHeight/2};}
   getView(){return {yaw:this.yaw,pitch:this.pitch,zoom:this.zoom};}
-  rotate(direction:number){this.yaw+=direction*Math.PI/4;this.updateCamera();}
+  rotate(direction:number){this.exploreUntil=performance.now()+200;this.yaw+=direction*Math.PI/4;this.updateCamera();}
   resetView(){this.yaw=.3;this.pitch=.18;this.setZoom(1);this.updateCamera();}
   private setZoom(value:number){this.zoom=Math.max(.65,Math.min(2.2,value));this.camera.zoom=this.zoom;this.camera.updateProjectionMatrix();this.dirty=true;this.positionButtons();}
   private beginPinch(){const [a,b]=[...this.pointers.values()];this.pinch=a&&b?{distance:Math.max(1,Math.hypot(a.x-b.x,a.y-b.y)),zoom:this.zoom}:null;}
@@ -100,12 +105,13 @@ export class BoardRenderer {
   };
   private finishPointer(event:PointerEvent,cancelled:boolean){
     if(!this.pointers.has(event.pointerId))return;
-    const tap=!cancelled&&!this.pinchLocked&&this.pointers.size===1&&this.drag&&!this.drag.moved?this.drag.id:undefined;
+    const isTap=!cancelled&&!this.pinchLocked&&this.pointers.size===1&&!!this.drag&&!this.drag.moved;
+    const tap=isTap?this.drag?.id:undefined;
     this.pointers.delete(event.pointerId);if(this.host.hasPointerCapture(event.pointerId))this.host.releasePointerCapture(event.pointerId);
     if(this.pointers.size>=2)this.beginPinch();
     else if(this.pointers.size===1){const [remaining]=this.pointers.values();this.pinch=null;this.drag={...remaining,startX:remaining.x,startY:remaining.y,moved:true};}
     else{this.pinch=null;this.drag=null;this.host.classList.remove('is-dragging');}
-    if(tap&&this.buttons.get(tap)?.disabled===false){this.suppressClickUntil=performance.now()+350;this.onSelect(tap);}
+    if(tap&&this.buttons.get(tap)?.disabled===false){this.suppressClickUntil=performance.now()+350;this.onSelect(tap);}else if(isTap)this.onMiss();
   }
   private pointerUp=(event:PointerEvent)=>this.finishPointer(event,false);
   private pointerCancel=(event:PointerEvent)=>this.finishPointer(event,true);
@@ -157,7 +163,7 @@ export class BoardRenderer {
       if(this.reducedMotion)object.visible=false;
       else{
         const normal=object.userData.screwId?this.normals.get(object.userData.screwId)!.clone():null;
-        this.exits.set(object,{start:performance.now()+(normal?0:380),position:object.position.clone(),quaternion:object.quaternion.clone(),normal});
+        this.exits.set(object,{start:performance.now()+(normal?0:(this.arcade?150:380)),position:object.position.clone(),quaternion:object.quaternion.clone(),normal});
         const shaft=object.getObjectByName('threaded-shaft');if(shaft)shaft.visible=true;
       }
     }
@@ -165,7 +171,7 @@ export class BoardRenderer {
   }
   private animate=()=>{
     this.frame=requestAnimationFrame(this.animate);
-    for(const[object,exit]of this.exits){if(!object.visible)continue;this.dirty=true;const p=Math.max(0,Math.min(1,(performance.now()-exit.start)/600));
+    for(const[object,exit]of this.exits){if(!object.visible)continue;this.dirty=true;const p=Math.max(0,Math.min(1,(performance.now()-exit.start)/(this.arcade?260:600)));
       if(exit.normal){object.position.copy(exit.position).addScaledVector(exit.normal,p*.9);object.quaternion.copy(exit.quaternion).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),p*Math.PI*4));}
       else object.position.copy(exit.position).addScaledVector(new THREE.Vector3(0,-1,0),p*1.2);
       if(p===1)object.visible=false;

@@ -38,3 +38,18 @@ Reduced motion removes pieces immediately and disables interface transitions.
 `src/styles.css` owns the UI palette and layout. `src/renderer.ts` owns the raster
 resolution, materials, lighting, framing, and ground shadow. `src/objects.ts`
 owns original geometry, details, and muted model colors.
+
+
+## Arcade presentation
+
+Classic remains quiet. Arcade adds a compact score/time/combo HUD and a combo
+meter while retaining the dusty-blue scene. Pixel bursts and on-screen score
+numbers originate at the selected screw. Bucket/model clears have larger bursts
+and a short warm flash, throttled to avoid repeated flashing. Effects are bounded
+and removed after finishing; they never intercept pointer input. Reduced motion
+suppresses particles/flashes and keeps stationary numeric feedback. Arcade
+extracts screws faster, while preserving their outward axes and Undo poses.
+
+Use 44-pixel mode controls. Keep the score HUD and bottom tools visible at
+360×740 and 390×844; retain vertical scrolling on shorter screens. Explain time
+costs next to Arcade Undo/Hint. Timer announcements should not flood screen readers.

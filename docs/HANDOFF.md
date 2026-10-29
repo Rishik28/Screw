@@ -9,9 +9,9 @@ Use one agent by default. Add agents only when the user explicitly requests para
 ## Product requirements
 
 - Open-source portrait mobile web game; no ads, purchases, accounts, tracking, or paid hints.
-- Recognizable original multipart objects/buildings with real depth; eight current levels grow from 24 to 48 screws (324 total).
+- Recognizable original multipart objects/buildings with real depth; eight Classic levels grow from 24 to 48 screws (324 total); Arcade rounds use 18–24.
 - Drag to rotate; pinch within the board to zoom only the model (0.65–2.2x). Mouse wheel also zooms. Reset/Home restores angle and zoom.
-- Eight saturated screw colors; up to four three-screw buckets; five temporary shelf slots; free hints, Undo, and Restart.
+- Eight saturated screw colors; up to four three-screw buckets; five temporary shelf slots; Classic has free hints/Undo, while Arcade has explicit time penalties.
 - Screws spin around their local axis and extract along their outward normal, exposing a shaft. Parts wait until the last screw clears before dropping. Undo restores exact poses; honor reduced motion.
 - Software MIT; original procedural assets CC0. Record external asset provenance in `docs/ASSETS.md` before inclusion.
 
@@ -38,10 +38,32 @@ suite, and a camera-specific lens tap/Undo and raster-resolution check. Visual
 review confirmed the 360×740 and 390×844 layouts fit their controls. Later
 campaign levels were not rerun because puzzle rules and anchors are unchanged.
 
+## Arcade update
+
+The user authorized a separate faster Arcade mode plus pixel explosions, flashes,
+and on-screen numbers. `src/arcade.ts` wraps the existing Game rules: 45 seconds
+initial, +3 seconds/bucket, 60 seconds held maximum, 90 active seconds hard cap,
+18–24 screws per round, up to ×5 combo, bounded rotation grace. Overflow costs
+5 seconds and rewinds enough previous moves to leave two shelf screws; revoked
+awards/time are reversed. Undo/Hint each cost 2 seconds. Classic remains free of
+timers and preserves its in-progress Game when switching modes. Help/background
+pause the timer; best score is local only. `src/effects.ts` bounds short-lived DOM
+pixels/popups, throttles flashes, and respects reduced motion.
+
+Validation passed: 41 unit tests and production build, the targeted Arcade
+browser suite (18-screw round, timer/pause, score/time bonuses, effects, Undo,
+automatic model transition, Classic preservation, timeout/retry, local best, and
+reduced motion), and Classic smoke (24 screws and shared controls). A touch-only
+Reset regression was fixed by handling view-control taps on pointer-up while
+retaining keyboard clicks. No full eight-level Classic browser rerun was needed;
+unit tests verify all Classic and compact Arcade solutions.
+
 ## Files
 
 - `src/main.ts`: UI, dialogs, current-level persistence, progression.
 - `src/renderer.ts`: Three.js rendering, pointer/pinch handling, hit targets, occlusion, animations.
+- `src/arcade.ts`: Arcade clock/scoring/recovery and compact rounds.
+- `src/effects.ts`: pixel bursts, numbers, flashes.
 - `src/game.ts`: pure rules, four buckets, shelf, Undo, verified hints.
 - `src/levels.ts`: levels and winning reference sequences.
 - `src/objects.ts`: multipart geometry, details, anchors, physical blockers.
