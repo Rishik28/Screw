@@ -3,7 +3,7 @@ import { Game, COLORS, BUFFER_CAPACITY } from './game';
 import { levels } from './levels';
 import { BoardRenderer } from './renderer';
 import { ArcadeSession } from './arcade';
-import { ArcadeEffects } from './effects';
+import { GameEffects } from './effects';
 
 declare global { interface Window { __game:Game; __board:BoardRenderer; __arcade:ArcadeSession|null; } }
 const app=document.querySelector<HTMLDivElement>('#app')!;
@@ -76,10 +76,11 @@ try {
 } catch {
   $('.board-wrap').innerHTML = '<p class="render-error">Your browser could not start 3D graphics. Try enabling hardware acceleration or opening this page in a current version of Safari, Chrome, or Firefox.</p>';
 }
-const effects = new ArcadeEffects($('.board-wrap'));
+const effects = new GameEffects($('.board-wrap'), $('.app-shell'));
 $('#mode-arcade').toggleAttribute('disabled', !board);
 
 function bindGame() {
+  effects.clearBuckets();
   window.__game = game; window.__arcade = arcade;
   board?.setArcade(!!arcade); board?.load(game);
   $('#arcade-hud').hidden = !arcade;
@@ -129,18 +130,26 @@ function refreshArcade() {
 }
 function select(id: string) {
   if (!$('.modal-backdrop').hidden || transition !== undefined) return;
-  if (!arcade) {
-    if (game.selectScrew(id)) { update('A little closer. Keep an eye on your shelf.'); if (game.state.status !== 'playing') showEnd(game.state.status === 'won'); }
-    return;
-  }
-  if (arcade.ended) return;
+  if (arcade?.ended) return;
   const point = board?.screenPoint(id) ?? {x:120, y:120};
   const screw = game.level.screws.find(s => s.id === id);
   if (!screw) return;
   const color = COLORS[screw.color];
+  const beforeBuckets=effects.captureBuckets();
+  const beforeParts=game.state.removedPlateIds.size;
+  if (!arcade) {
+    if (game.selectScrew(id)) {
+      update(game.clearedTrays.length ? `${game.clearedTrays.map(t=>t.color).join(' and ')} bucket cleared.` : 'A little closer. Keep an eye on your shelf.');
+      effects.impact(point,color,game.clearedTrays.length?0:game.state.removedPlateIds.size>beforeParts?2:1);
+      effects.buckets(beforeBuckets,game.clearedTrays,false);
+      if (game.state.status !== 'playing') showEnd(game.state.status === 'won');
+    }
+    return;
+  }
   const oldMultiplier = arcade.multiplier;
   const hit = arcade.select(id);
   if (hit.overflow) {
+    effects.clear(); effects.shake(5);
     effects.center('SHELF FULL −5s', '#ee8c78', true);
     update(`Shelf full: −5s. Rewound ${hit.rewound} earlier screws to free space.`);
   } else if (hit.accepted) {
@@ -148,6 +157,8 @@ function select(id: string) {
     effects.burst(point, color, `+${hit.points}${bonus}`, hit.buckets > 0);
     if (hit.multiplier > oldMultiplier) effects.center(`×${hit.multiplier} COMBO`);
     update(hit.buckets ? `Bucket cleared! +${hit.points} points${bonus}.` : `+${hit.points} · ${arcade.streak} in a row`);
+    effects.impact(point,color,hit.buckets?0:game.state.removedPlateIds.size>beforeParts?3:1.5);
+    effects.buckets(beforeBuckets,game.clearedTrays,true);
     if (hit.modelCleared) {
       effects.center('MODEL CLEAR!');
       const session = arcade;
@@ -169,7 +180,7 @@ function update(message?: string) {
   $('#level-pill').toggleAttribute('disabled', !!arcade);
   const progress = Math.round(state.removedIds.size / state.level.screws.length * 100);
   $('.progress-fill').style.width = `${progress}%`; $('.progress-track').setAttribute('aria-valuenow', String(progress));
-  $('.tray-row').innerHTML = state.trays.map(t => `<div class="tray" style="--tray-color:${COLORS[t.color]}" aria-label="${t.color} tray, ${t.count} of 3"><div class="tray-label">${t.color}</div><div class="tray-slots">${Array.from({length:3}, (_, i) => `<span class="tray-slot ${i < t.count ? 'is-filled' : ''}" style="--screw-color:${COLORS[t.color]}">${i < t.count ? '✚' : ''}</span>`).join('')}</div></div>`).join('') || '<div class="tray"><div class="tray-label">All colors collected ✓</div></div>';
+  $('.tray-row').innerHTML = state.trays.map(t => `<div class="tray" data-color="${t.color}" data-count="${t.count}" style="--tray-color:${COLORS[t.color]}" aria-label="${t.color} tray, ${t.count} of 3"><div class="tray-label">${t.color}</div><div class="tray-slots">${Array.from({length:3}, (_, i) => `<span class="tray-slot ${i < t.count ? 'is-filled' : ''}" style="--screw-color:${COLORS[t.color]}">${i < t.count ? '✚' : ''}</span>`).join('')}</div></div>`).join('') || '<div class="tray"><div class="tray-label">All colors collected ✓</div></div>';
   $('.buffer-slots').innerHTML = Array.from({length:Math.max(BUFFER_CAPACITY, state.buffer.length)}, (_, i) => `<span class="buffer-slot ${state.buffer[i] ? 'is-filled' : ''}" style="--screw-color:${state.buffer[i] ? COLORS[state.buffer[i]] : 'transparent'}" aria-label="${state.buffer[i] || 'Empty shelf slot'}">${state.buffer[i] ? '✚' : ''}</span>`).join('');
   $('#undo').toggleAttribute('disabled', arcade ? !arcade.canUndo || transition !== undefined : !game.canUndo);
   $('#hint').toggleAttribute('disabled', state.status !== 'playing' || !!arcade?.ended);
@@ -195,7 +206,7 @@ function showEnd(won: boolean) {
   if (won) {
     const last = classicIndex === levels.length - 1;
     modal('✿', last ? 'A garden well tended.' : 'Beautifully undone.', `<p>${last ? 'You completed all eight puzzles. Every color has found its home.' : 'Every screw has found its home.'}<br>${game.state.moves} screws sorted · ${game.state.completedTrays} trays cleared</p>`, last ? 'Play from the beginning' : 'Next puzzle', () => start(last ? 0 : classicIndex + 1), 'Replay this puzzle', () => { closeModal(); start(classicIndex); });
-  } else modal('☁', 'A little too crowded.', '<p>Your five shelf spaces are full. Undo a move to make room, or start fresh. There’s always another way.</p>', 'Undo last screw', () => { game.undo(); update('Room to try another color.'); }, 'Restart puzzle', () => { closeModal(); start(classicIndex); });
+  } else modal('☁', 'A little too crowded.', '<p>Your five shelf spaces are full. Undo a move to make room, or start fresh. There’s always another way.</p>', 'Undo last screw', () => { effects.clear(); game.undo(); update('Room to try another color.'); }, 'Restart puzzle', () => { closeModal(); start(classicIndex); });
 }
 function showCollection() {
   if (arcade) return;
@@ -213,10 +224,11 @@ $('#mode-arcade').onclick = () => { if (!arcade) startArcade(); };
 $('#mode-classic').onclick = () => { if (arcade) backToClassic(); };
 $('#undo').onclick = () => {
   if (transition !== undefined) return;
+  effects.clear();
   if (arcade) { if (arcade.undo()) { effects.center('UNDO −2s', '#e6c47a', true); update('Move and score rewound. −2s.'); } if (arcade.ended) finishArcade(); }
   else if (game.undo()) update('One step back. A fresh perspective.');
 };
-$('#restart').onclick = () => { if (arcade) startArcade(); else { game.restart(); update('A fresh start. Take your time.'); } };
+$('#restart').onclick = () => { if (arcade) startArcade(); else { effects.clear(); game.restart(); update('A fresh start. Take your time.'); } };
 $('#hint').onclick = () => {
   if (arcade) { arcade.miss(); arcade.penalize(2_000); if (arcade.ended) { finishArcade(); return; } }
   const hint = game.getHint(); if (hint.screwId) board?.hint(hint.screwId);

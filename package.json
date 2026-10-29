@@ -11,7 +11,8 @@
     "test": "node --import tsx --test --test-isolation=none tests/*.test.ts",
     "test:browser": "node tests/browser.mjs",
     "test:browser:smoke": "node tests/browser.mjs --smoke",
-    "test:arcade": "node tests/arcade-browser.mjs"
+    "test:arcade": "node tests/arcade-browser.mjs",
+    "test:tactile": "node tests/tactile-browser.mjs"
   },
   "dependencies": {
     "three": "^0.180.0"

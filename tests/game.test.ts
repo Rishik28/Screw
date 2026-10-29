@@ -117,3 +117,23 @@ test('undo restores tray queue after a completed group', () => {
   game.selectScrew('coral-2');
   assert.deepEqual(game.state.trays[0], {color: 'mint', count: 0});
 });
+
+test('bucket completion events include automatic buffer clears in their actual slots', () => {
+  const game=new Game(fixture());
+  for(const id of ['mint-0','mint-1','mint-2']) game.selectScrew(id);
+  assert.deepEqual(game.clearedTrays,[]);
+  for(const id of ['coral-0','coral-1','coral-2']) game.selectScrew(id);
+  assert.deepEqual(game.clearedTrays,[{slot:0,color:'coral'},{slot:0,color:'mint'}]);
+  assert.equal(game.state.completedTrays,2);
+  assert.deepEqual(game.state.buffer,[]);
+  game.selectScrew('blue-0'); assert.deepEqual(game.clearedTrays,[]);
+});
+
+test('Undo and Restart clear transient bucket events without replaying completion feedback', () => {
+  const game=new Game(fixture());
+  for(const id of ['coral-0','coral-1','coral-2']) game.selectScrew(id);
+  assert.deepEqual(game.clearedTrays,[{slot:0,color:'coral'}]);
+  game.undo(); assert.deepEqual(game.clearedTrays,[]); assert.equal(game.state.trays[0].count,2);
+  game.selectScrew('coral-2'); assert.deepEqual(game.clearedTrays,[{slot:0,color:'coral'}]);
+  game.restart(); assert.deepEqual(game.clearedTrays,[]); assert.equal(game.state.completedTrays,0);
+});

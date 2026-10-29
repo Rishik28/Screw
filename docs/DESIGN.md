@@ -53,3 +53,23 @@ extracts screws faster, while preserving their outward axes and Undo poses.
 Use 44-pixel mode controls. Keep the score HUD and bottom tools visible at
 360×740 and 390×844; retain vertical scrolling on shorter screens. Explain time
 costs next to Arcade Undo/Hint. Timer announcements should not flood screen readers.
+
+
+## Tactile feedback in both modes
+
+Successful screw taps have a small expanding ring and a short impact kick. Part
+releases and bucket clears give stronger kicks, capped at five pixels. A new
+pointer-down or keyboard input cancels the stage shake before interaction;
+shakes never stack or run as a continuous loop.
+
+A new screw slot briefly pops. Completed buckets show all three screws and a
+check mark, squash, lift away, and reveal the incoming bucket. Arcade uses a
+faster sequence than Classic. Completion copies sit in an aria-hidden,
+pointer-transparent overlay, separate from the four live trays. Logical bucket
+replacement and rewards happen immediately. Game completion events include
+buckets auto-filled from the shelf, so cascades animate the correct colors.
+Undo, Restart, and model changes clear stale completion feedback.
+
+Reduced motion suppresses shakes, tap rings, slot scaling, and bucket movement;
+a stationary full bucket/check briefly fades instead. Keep the Classic backdrop
+quiet and preserve the existing Arcade particles and score popups.

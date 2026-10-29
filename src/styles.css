@@ -32,7 +32,7 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .icon-button { min-width: 44px; font-size: 15px; color: var(--muted); }
 .game-layout { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .tray-row { display: flex; gap: 7px; margin-bottom: 14px; }
-.tray {
+.tray, .tray-completion {
   min-width: 0; flex: 1; padding: 8px 3px; border: 1px solid #c9d1d041;
   border-top: 3px solid var(--tray-color, #b8c2c8); border-radius: 2px;
   background: color-mix(in srgb, var(--tray-color, #697d8e) 22%, #697d8e);
@@ -115,3 +115,11 @@ h1 { margin: 0; font-size: 12px; line-height: 1.4; font-weight: normal; color: v
 .arcade-flash { position: absolute; inset: 0; width: 100%; height: 100%; background: #f7e9b4; }
 .run-score { font-size: 24px !important; color: #f3e5b8 !important; }
 @media (max-width: 360px) { .is-arcade .arcade-hud output { font-size: 19px; } .is-arcade .mode-tab { font-size: 9px; } }
+
+/* Brief impacts move the stage as one unit; new pointer input cancels the shake. */
+#app { overflow-x: clip; }
+.tray-row { min-height: 58px; }
+.bucket-effects { position: absolute; inset: 0; pointer-events: none; z-index: 150; overflow: hidden; }
+.tray-completion { position: absolute; margin: 0; flex: none; border-color: var(--tray-color); background: color-mix(in srgb,var(--tray-color) 40%,#697d8e); box-shadow: 0 3px 0 #20334570; }
+.bucket-check { position: absolute; right: 3px; top: -12px; color: #f7e5a6; font-size: 17px; text-shadow: 1px 1px 0 #203345; }
+.impact-ring { position: absolute; width: 25px; height: 25px; border: 2px solid; border-radius: 50%; }

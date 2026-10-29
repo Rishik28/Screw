@@ -58,6 +58,21 @@ Reset regression was fixed by handling view-control taps on pointer-up while
 retaining keyboard clicks. No full eight-level Classic browser rerun was needed;
 unit tests verify all Classic and compact Arcade solutions.
 
+## Tactile feedback update
+
+Both modes now use `GameEffects`: brief input-cancellable stage shakes, tap rings,
+slot pops, and a full-bucket squash/lift/new-bucket arrival. `Game.clearedTrays`
+reports exact slot/color events (including automatic shelf cascades); these are
+transient and cleared on every selection, Undo, and Restart. The live four-tray
+row updates immediately. Decorative full-tray copies are pointer-transparent,
+aria-hidden, and cleared by Undo/Restart/model transitions. Reduced motion gets
+only a static full-bucket/check fade, with no shakes or scaling.
+
+`npm run test:tactile` covers both modes and both motion preferences, immediate
+continued input, actual full-bucket animations, and Undo cleanup. Unit count is
+now 43. The focused Arcade and Classic smoke suites provide final regressions.
+No full campaign browser rerun is needed for this presentation-only update.
+
 ## Files
 
 - `src/main.ts`: UI, dialogs, current-level persistence, progression.

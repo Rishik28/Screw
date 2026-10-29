@@ -2,6 +2,7 @@ import { type Color, type Level } from './levels';
 export { COLORS } from './levels';
 export const BUFFER_CAPACITY = 5;
 export const ACTIVE_TRAY_COUNT = 4;
+export interface TrayClear { slot: number; color: Color }
 export interface Tray { color: Color; count: number }
 export interface GameState {
   level: Level; removedIds: Set<string>; removedPlateIds: Set<string>;
@@ -10,6 +11,7 @@ export interface GameState {
 }
 export class Game {
   state: GameState;
+  clearedTrays: TrayClear[] = [];
   private queueIndex = 0;
   private history: {state: GameState; queueIndex: number}[] = [];
   constructor(public level: Level) { this.state = this.initial(); }
@@ -79,6 +81,7 @@ export class Game {
       : {screwId:null,message:bounded ? 'Try Undo to revisit an earlier choice, then ask for a hint.' : 'This shelf cannot be cleared from here. Use Undo to try another order.'};
   }
   selectScrew(id: string): boolean {
+    this.clearedTrays = [];
     if (!this.isAvailable(id)) return false;
     this.history.push({state:this.clone(),queueIndex:this.queueIndex});
     const screw = this.level.screws.find(s=>s.id===id)!;
@@ -105,6 +108,7 @@ export class Game {
           this.state.buffer.splice(buffered,1); tray.count++; changed=true;
         }
         if (tray.count===3) {
+          this.clearedTrays.push({slot:i, color:tray.color});
           this.state.completedTrays++;
           if (this.queueIndex<this.level.trayOrder.length) this.state.trays[i]={color:this.level.trayOrder[this.queueIndex++],count:0};
           else { this.state.trays.splice(i,1); i--; }
@@ -118,9 +122,10 @@ export class Game {
       trays:this.state.trays.map(t=>({...t})),buffer:[...this.state.buffer]};
   }
   undo(): boolean {
+    this.clearedTrays = [];
     const previous=this.history.pop();
     if (!previous) return false;
     this.state=previous.state; this.queueIndex=previous.queueIndex; return true;
   }
-  restart() { this.history=[]; this.state=this.initial(); }
+  restart() { this.clearedTrays=[]; this.history=[]; this.state=this.initial(); }
 }

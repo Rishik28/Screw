@@ -52,9 +52,11 @@ Choose **Arcade · score attack** above the buckets. Classic stays available, an
 - Undo and Hint each cost 2 seconds in Arcade. Undo also reverses the move's rewards. Both remain free in Classic.
 - Help pauses the clock. Backgrounding the game pauses it and asks you to resume on return. Best scores are stored only in your browser.
 
-Arcade adds bounded pixel bursts, score numbers, combo callouts, and brief bucket/model flashes. Reduced-motion mode keeps numeric feedback while suppressing particles and flashes. Classic keeps the quieter visual presentation.
+Arcade adds bounded pixel bursts, score numbers, combo callouts, and brief bucket/model flashes. Reduced-motion mode keeps numeric feedback while suppressing particles and flashes. Classic keeps the quieter visual presentation. Both modes add brief impact shakes, screw tap pulses, slot-fill pops, and a completed-bucket squash/lift/replacement animation. New input cancels a shake; animations never delay the next move. Reduced motion uses a stationary completion check instead.
 
 Run `npm run test:arcade` against a production preview for the timer, scoring, effects, recovery, mode switching, round transitions, and reduced-motion checks.
+
+Run `npm run test:tactile` against the preview for both modes’ fill animations, shake behavior, reduced motion, uninterrupted input, and Undo cleanup.
 
 ## Develop and contribute
 
