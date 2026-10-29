@@ -4,6 +4,8 @@ A free, open-source 3D screw puzzle for portrait mobile browsers. No ads, in-app
 
 For project status and continuation instructions, read [docs/HANDOFF.md](docs/HANDOFF.md).
 
+The visual direction is sparse, dusty blue, and inspired by softly rasterized early-2000s console graphics. See [design notes](docs/DESIGN.md).
+
 ## Run locally
 
 Requires Node.js 22.12+ (Node.js 24 recommended) and npm.

@@ -6,11 +6,11 @@ export interface ObjectPart {
   rotation: Vec3; color: string; stage: number;
   anchors: {position: Vec3; normal: Vec3; blockedBy?:string[]}[];
   blockedBy: string[];
-  details?: {primitive:Primitive; size:Vec3; position:Vec3; rotation:Vec3; color:string}[];
+  details?: {primitive:Primitive|'ring'; size:Vec3; position:Vec3; rotation:Vec3; color:string}[];
 }
 export interface AssemblyModel { id: string; name: string; subtitle: string; parts: ObjectPart[] }
 type Face = 'front' | 'back' | 'left' | 'right' | 'top' | 'bottom';
-const C = {cream:'#f3e8cc',red:'#dc7762',blue:'#78a8c0',mint:'#83b4a1',gold:'#dfba65',navy:'#405b68',wood:'#b79172',white:'#eeeae0'};
+const C = {cream:'#cec8b6',red:'#aa705b',blue:'#5d7285',mint:'#86978d',gold:'#b7a477',navy:'#3d4e60',wood:'#927b66',white:'#d6cfbd'};
 
 function rotate(v:Vec3,r:Vec3):Vec3 {
   let [x,y,z]=v;
@@ -106,6 +106,12 @@ const camera:AssemblyModel={id:'camera',name:'Weekend Camera',subtitle:'Remove t
   part('screen','Rear display',[.3,0,-.72],[1.8,1.15,.16],C.blue,'back'),
   part('dial','Rear control plate',[-1.05,0,-.72],[.72,1.15,.16],C.gold,'back'),
 ]};
+// Quiet camera palette: the saturated fasteners carry the gameplay color.
+for (const panel of camera.parts) {
+  if (['front', 'back', 'left'].includes(panel.id)) panel.color = C.cream;
+  if (panel.id === 'right') panel.color = '#aa7150';
+  if (panel.id === 'lens') panel.color = '#354658';
+}
 const rover:AssemblyModel={id:'rover',name:'Moon Rover',subtitle:'A six-wheel explorer with a raised instrument cabin.',parts:[
   part('wheel-a','Left front wheel',[-1.23,-.66,1.02],[.82,.9,.38],C.navy,'front'),
   part('wheel-b','Left middle wheel',[0,-.66,1.02],[.82,.9,.38],C.navy,'front'),
@@ -174,7 +180,7 @@ for(const model of ASSEMBLY_MODELS) for(const p of model.parts) {
   }
 }
 
-const detail=(position:Vec3,size:Vec3,color:string,primitive:Primitive='box',rotation:Vec3=[0,0,0])=>({position,size,color,primitive,rotation});
+const detail=(position:Vec3,size:Vec3,color:string,primitive:Primitive|'ring'='box',rotation:Vec3=[0,0,0])=>({position,size,color,primitive,rotation});
 house.parts.find(p=>p.id==='front')!.details=[
   detail([-.82,0,.14],[.48,.36,.07],C.blue),detail([.82,0,.14],[.48,.36,.07],C.blue),
 ];
@@ -225,6 +231,17 @@ function covers(anchor:ObjectPart['anchors'][number],other:ObjectPart):boolean {
   }
   return true;
 }
+
+camera.parts.find(p=>p.id==='front')!.details=[
+  detail([-.95,.55,.15],[.42,.27,.05],C.navy),
+];
+camera.parts.find(p=>p.id==='flash')!.details=[
+  detail([0,0,.48],[.7,.22,.04],C.gold),
+];
+camera.parts.find(p=>p.id==='lens')!.details=[
+  detail([0,.12,0],[1.32,.04,1.32],'#697e90','ring'),
+  detail([0,.15,0],[.37,.035,.37],'#233546','cylinder'),
+];
 
 // Dependencies represent visible obstructions, rather than arbitrary assembly order.
 // A door can cover one wall screw without locking the other two exposed wall screws.

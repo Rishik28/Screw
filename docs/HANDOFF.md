@@ -25,6 +25,19 @@ CrewAI's separate `feature/model-pinch-zoom` branch / PR #1 (`bc111bf`) remains 
 
 Follow-up added: this handoff, `test:browser:smoke`, and a collection picker opened from the puzzle counter. All eight models can be selected/replayed; selecting a card waits for explicit Play, and cancel preserves the current attempt. Validation passed: 27 unit tests, production build, collection selection/cancel/persistence, and the first-level interaction/fallback suite (24 screws). Later campaign levels were intentionally not rerun for this UI-only update. No additional gameplay priority has been selected.
 
+## Approved art direction
+
+The user chose the minimalist dusty-blue camera mockup: sparse blue background,
+quiet off-white monospace UI, matte ivory/slate/rust model materials, and vivid
+screws. Actual lower-resolution rendering and simple lighting should create the
+soft PS2/CRT appearance; scanlines remain faint/static. No papercraft collage,
+large logos, scenic clutter, neon, vaporwave, or runtime generated-image assets.
+See `docs/DESIGN.md`. The visual update changes rendering/framing and UI styling,
+not puzzle rules or structural screw anchors. Validation passed: 27 unit tests, production build, focused first-level browser
+suite, and a camera-specific lens tap/Undo and raster-resolution check. Visual
+review confirmed the 360×740 and 390×844 layouts fit their controls. Later
+campaign levels were not rerun because puzzle rules and anchors are unchanged.
+
 ## Files
 
 - `src/main.ts`: UI, dialogs, current-level persistence, progression.

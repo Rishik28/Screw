@@ -1,39 +1,40 @@
-# Screw Garden design
+# Screw Garden visual direction
 
-The game is a quiet, tactile workshop: warm ivory, soft green, dark evergreen type,
-and vivid, saturated screw heads. Models use original geometric parts and a soft
-ground shadow. Important actions use a consistent filled green button; utility
-actions use light outlined buttons. There are no commercial calls to action.
+Use the approved dusty-blue camera mockup as the reference: a quiet, sparse,
+slightly fuzzy early-2000s console game. Keep the model as the focus. No large
+logo, sticker collage, decorative scenery, cardboard textures, neon, or
+vaporwave/synthwave imagery.
 
-The interface follows a portrait sequence: level and progress, matching trays,
-3D object, temporary storage, then undo/hint/restart controls. Keep the
-object as the primary visual element. A desktop viewport displays the same
-focused portrait game panel. Safe-area padding accommodates phone cutouts.
+The page uses a dusty blue field (`#50677d`), soft off-white monospace type, and
+compact rectangular controls. Trays have subdued tinted surfaces with clear
+color strips and labels. Saturated screws remain easy to identify against
+ivory, slate, muted rust, and grey-green model materials. The shelf has five
+simple octagonal sockets. Dialogs and the collection picker use the same palette.
 
-The collection uses recognizable real objects and buildings assembled from many
-individually removable parts. The models keep their material colors restrained
-so saturated screw colors remain easy to read. Rotate objects by dragging on the
-board, or use the 44-pixel left/reset/right controls at the bottom of the board.
-The board caption and drag reminder sit at the top to leave rotation controls
-clear. Rotation must preserve touch targets and occlusion: hidden screws cannot
-be tapped through the object. Two-finger pinching changes only the model zoom;
-page zoom remains available outside the board. A pinch must never remove a screw,
-including when one finger lifts before the other. Reset restores angle and zoom.
+The 3D scene uses matte diffuse materials, small procedural texture maps,
+low-sided cylinders, and one restrained ground shadow. Render the scene below
+its displayed resolution with anti-aliasing off, then softly upscale it; this
+produces actual rasterized edges. A very low-opacity static scanline overlay
+completes the display character. Do not add animated noise, flicker, aggressive
+RGB splitting, heavy blur, or complex postprocessing. No generated concept image
+is used as a runtime backdrop or texture.
 
-Screws turn around their own axes and back out along their outward surface
-normals. Their shafts become visible as they clear the part. Undo restores the
-original position and orientation, including during an extraction. Respect
-reduced-motion preferences.
+Models remain real, individually removable assemblies. Surface details attach
+to their owning components. Do not move screw anchors or change blockers solely
+to decorate a model. Preserve vivid screw colors, visual occlusion, accessible
+HTML hit targets, and keyboard controls. Default framing should make the object
+large enough to inspect; drag and pinch still rotate and zoom it.
 
-Up to four sorting buckets fit in one horizontal row, with compact labeled
-three-slot buckets when four are active. Bucket colors are supplied by the game
-systems palette, as are shelf screw colors. Distinguish screw hues from the
-subdued model materials; avoid strong lighting that washes out their colors.
+Keep portrait controls visible at 360×740 and 390×844. Smaller screens may scroll
+vertically; never introduce horizontal scrolling. Maintain 44-pixel utility
+buttons and readable color labels. Page zoom remains available outside the board.
+Pinching the model must not remove screws; Reset restores angle and zoom.
 
-Color names, status text, and accessible button labels must accompany colors and
-icons. Touch controls have at least 44-pixel targets. System fonts avoid remote
-font requests, and reduced-motion preferences disable interface transitions.
+Screws spin around their own axes and extract along outward surface normals,
+revealing their shafts. A part waits until its last screw clears before dropping.
+Undo restores exact positions and orientations, including mid-extraction.
+Reduced motion removes pieces immediately and disables interface transitions.
 
-`src/styles.css` contains the shared palette, layout, responsive compact mode,
-tray and storage states, and completion/help dialog styles. Check portrait
-viewports at 360 × 740 and 390 × 844 when changing the interface.
+`src/styles.css` owns the UI palette and layout. `src/renderer.ts` owns the raster
+resolution, materials, lighting, framing, and ground shadow. `src/objects.ts`
+owns original geometry, details, and muted model colors.
