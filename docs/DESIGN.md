@@ -16,7 +16,14 @@ so saturated screw colors remain easy to read. Rotate objects by dragging on the
 board, or use the 44-pixel left/reset/right controls at the bottom of the board.
 The board caption and drag reminder sit at the top to leave rotation controls
 clear. Rotation must preserve touch targets and occlusion: hidden screws cannot
-be tapped through the object.
+be tapped through the object. Two-finger pinching changes only the model zoom;
+page zoom remains available outside the board. A pinch must never remove a screw,
+including when one finger lifts before the other. Reset restores angle and zoom.
+
+Screws turn around their own axes and back out along their outward surface
+normals. Their shafts become visible as they clear the part. Undo restores the
+original position and orientation, including during an extraction. Respect
+reduced-motion preferences.
 
 Up to four sorting buckets fit in one horizontal row, with compact labeled
 three-slot buckets when four are active. Bucket colors are supplied by the game
