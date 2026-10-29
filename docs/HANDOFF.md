@@ -1,11 +1,10 @@
 # Screw Garden handoff
 
-## Subtle vibration and no zoom punch release
+## Vibration removal and gameplay selection protection release
 
-The user explicitly authorized publishing this release on October 29, 2026; baseline `8ac29b5`. The user approved removing automatic camera punches, reducing shakes and adding optional phone vibration. `src/haptics.ts` wraps Vibration API requests safely, with a saved opt-in toggle in Help (default off). Accepted screws request 10ms; a bucket-clear move requests one 20ms pulse instead. Disabling/backgrounding cancels pending vibration. Unsupported browsers show an unavailable setting and keep normal gameplay. Test API invocation with mocks; no claim of actual device intensity has been verified. Android Chrome generally supports the API; iPhone Safari does not.
+The user explicitly authorized publishing this update on October 29, 2026; baseline `2645ae8`. This authorization covers this release only. The user requested complete removal of vibration support and protection against accidental highlighting on the model board. The vibration module, calls, setting, icon, related tests, styles, and package script are removed. Manual zoom, subtle shakes, and other visual effects remain.
 
-Renderer camera punch state/events/animation are removed. Pinch and wheel zoom are unchanged. Stage shakes are capped at 3px; existing cabinet buttons, particles and pressure effects remain. OS reduced-motion override remains as previously requested. `test:haptics` covers actual UI toggle/persistence, pulse requests, unsupported-browser play and no automatic zoom. `test:tactile` now asserts model zoom remains exactly unchanged throughout effects. Validation passes: 60 unit tests, production build, haptics browser checks (mocked Vibration API), and both-mode tactile checks with both OS motion preferences. No physical phone vibration strength was tested. This publication authorization covers this release only; future publication requires a new request.
-
+The screenshot showed an iOS selection starting in the model label/counter and extending across the canvas. Protection now covers `.app-shell` and all gameplay descendants (labels, trays, counters and board). Gameplay-scoped selectstart/contextmenu/dragstart handlers cancel browser actions; pointer-down clears an existing selection without canceling the pointer event. Dialogs are siblings outside `.app-shell` and remain selectable. Keep keyboard focus-visible and model gestures. The regression covers counter double-click and selection/context guards across gameplay plus the normal touch smoke suite. Validation passed: 58 unit tests, production build, focused Chromium touch checks for counter double-click/long-press, model rotation/pinch, screw tapping, keyboard rotation, and selectable Help text. Physical iOS hardware has not been tested.
 
 ## Cabinet controls and explosive feedback release
 

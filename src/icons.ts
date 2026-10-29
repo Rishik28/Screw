@@ -1,6 +1,5 @@
 /** Original, deliberately simple line icons; no font or remote assets. */
 const paths:Record<string,string>={
- vibrate:'M8 3h8v18H8V3Zm3 15h2M4 7l-2 5 2 5m16-10 2 5-2 5',
  plus:'M12 5v14M5 12h14',
  bucket:'M4 7h16l-2 14H6L4 7Zm3-1a5 5 0 0 1 10 0',
  shelf:'M3 5v16M21 5v16M3 10h18M3 18h18M7 5v4m5-4v4m5-4v4',

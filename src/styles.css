@@ -252,7 +252,12 @@ button:not(.screw-target):disabled { filter: saturate(.45); opacity: .55; }
 .board-wrap.is-critical::after { opacity: 1; animation: pressure-breathe 1s ease-in-out infinite alternate; }
 @keyframes pressure-breathe { from { box-shadow: inset 0 0 20px #d7774c33; } to { box-shadow: inset 0 0 48px #d7774c77; } }
 @media (max-height: 650px) { .tree-modal .tree-footnote { display: none; }.tree-map { margin: 5px 0; } }
-.haptics-setting { margin-top: 16px; padding-top: 12px; border-top: 1px solid #bcc9c34d; }
-#toggle-vibration { min-height: 44px; width: 100%; font-size: 11px; }
-#toggle-vibration[aria-pressed="true"] { background: linear-gradient(#b6c6a6,#758d70); }
-.haptics-setting p { font-size: 10px; margin-bottom: 0; }
+
+/* Prevent native selection from starting in labels and spanning the game canvas. */
+.app-shell, .app-shell * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-drag: none;
+}

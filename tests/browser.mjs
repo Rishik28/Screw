@@ -100,6 +100,17 @@ try {
     await page.screenshot({ path: `${artifacts}/portrait-${width}.png`, fullPage: true });
   }
   await page.setViewportSize({ width: 360, height: 740 });
+  // Native selection cannot start in labels and extend across the canvas.
+  const nativeActions=await page.evaluate(()=>{
+    const elements=['.brand','.game-header','.gesture-note','.tray-label','.board-wrap','canvas','.buffer-row'].map(selector=>document.querySelector(selector));
+    return {selection:elements.every(el=>getComputedStyle(el).userSelect==='none'),
+      canceled:elements.every(el=>['contextmenu','selectstart','dragstart'].every(type=>!el.dispatchEvent(new Event(type,{bubbles:true,cancelable:true})))),
+      outsideAllowed:document.querySelector('.modal').dispatchEvent(new Event('contextmenu',{bubbles:true,cancelable:true}))};
+  });
+  assert.ok(nativeActions.selection&&nativeActions.canceled&&nativeActions.outsideAllowed,'gameplay selection guards leaked or failed');
+  const counter=await page.locator('.gesture-note').boundingBox();
+  await page.mouse.dblclick(counter.x+counter.width*.8,counter.y+counter.height/2);
+  assert.equal(await page.evaluate(()=>window.getSelection().toString()),'','double-tapping counter selected the gameplay surface');
   await page.getByRole('button', { name: 'How to play' }).tap();
   await page.keyboard.press('Shift+Tab');
   assert.equal(await page.evaluate(() => !!document.activeElement.closest('[role="dialog"]')), true, 'modal focus escaped');

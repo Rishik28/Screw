@@ -1,4 +1,4 @@
-> Latest draft: automatic camera zoom punches are removed and shakes capped at 3px. Help offers optional vibration (off by default): 10ms screws / 20ms bucket clears where supported. Manual zoom remains unchanged. This supersedes earlier camera-punch notes below.
+> Latest draft: automatic camera zoom punches are removed and shakes capped at 3px. Phone vibration has been removed. The gameplay surface—including labels and counters—suppresses native selection and long-press callouts; dialogs remain selectable. Manual zoom remains unchanged. This supersedes earlier camera-punch notes below.
 
 > Current draft override: arcade cabinet controls and full impact feedback are enabled at the user’s explicit request. Reduced-motion handling described in earlier sections is disabled for now.
 
