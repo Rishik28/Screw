@@ -61,7 +61,7 @@ export class GameEffects {
   }
   press(button: HTMLElement) {
     if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
-    this.track(button.animate([{transform:'scale(1)'},{transform:'scale(.94)',offset:.35},{transform:'scale(1)'}],{duration:170,easing:'ease-out'}));
+    this.track(button.animate([{scale:'1'},{scale:'.94',offset:.35},{scale:'1'}],{duration:170,easing:'ease-out'}));
   }
   upgrade() {
     const node=document.querySelector('.workshop-scene');

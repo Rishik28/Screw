@@ -45,6 +45,8 @@ Select **Workshop** to start a separate timed salvage attempt with one bucket an
 - Auto-fill collects up to three actual **exposed** screws matching one active bucket; it never bypasses physical blockers. Three new bucket clears recharge a use (two with Fast charger). Replaying bucket clears with Undo does not recharge again.
 - Restore the workbench, tool wall, and collection shelves with scrap. Restoration is visual and does not hide mandatory upgrades.
 
+Upgrades use an icon-based branching map with Workbench, Tools, and Mastery tabs. Each branch fits on a portrait screen without scrolling; select a node to inspect it, then Install to buy. The Room tab holds restoration. Locked nodes remain inspectable.
+
 XP, scrap, purchases, restoration, completed-model count, and the random deck save locally on this device. An active puzzle survives mode changes in the open page; reloading starts a new attempt while retaining banked earnings. Storage failures display a warning in the Workshop. No accounts, server, ads, or purchases are involved.
 
 Use `npm run test:workshop` against a local production preview for real-pointer/touch progression, rewards, failure, purchases, restoration, local save, charged tools, timer, reduced motion, and skill-tree accessibility checks.

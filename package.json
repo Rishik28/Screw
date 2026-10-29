@@ -13,7 +13,8 @@
     "test:browser:smoke": "node tests/browser.mjs --smoke",
     "test:arcade": "node tests/arcade-browser.mjs",
     "test:tactile": "node tests/tactile-browser.mjs",
-    "test:workshop": "node tests/workshop-browser.mjs"
+    "test:workshop": "node tests/workshop-browser.mjs",
+    "test:tree": "node tests/skill-tree-browser.mjs"
   },
   "dependencies": {
     "three": "^0.180.0"

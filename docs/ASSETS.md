@@ -19,3 +19,7 @@ For mobile rendering, reuse geometry and materials, use flat colors, cap bevel s
 New external assets must include their source URL, author, exact license, and any required attribution here before inclusion. Prefer CC0 or CC BY 4.0; keep CC BY attribution accessible in the app. Avoid editorial-only, noncommercial, no-derivatives, or unclear licenses. Downloading a free model does not by itself grant redistribution rights.
 
 The dusty-blue art direction uses original 32×32 procedural surface and shadow maps generated in `src/renderer.ts`, plus an octagonal lens rim and painted camera details in `src/objects.ts`. These are original CC0 visual assets, with no downloaded or generated-image textures. Mockups were references only.
+
+### Interface icons
+
+The inline SVG paths in `src/icons.ts` were drawn for this project and are original CC0 assets, matching the procedural model assets. No icon fonts, external downloads, or attribution dependencies.

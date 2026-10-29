@@ -68,10 +68,11 @@ try{
   assert.equal(await page.evaluate(()=>window.__workshop.rewards.speed.xp>0),elapsed<=target);
   await page.screenshot({path:`${artifacts}/workshop-results.png`,fullPage:true});
   await page.getByRole('button',{name:'Workshop & upgrades',exact:true}).tap();
-  await page.locator('[data-upgrade="bucket2"]').tap();assert.match(await page.locator('[data-upgrade="bucket2"]').innerText(),/Installed/);
+  await page.locator('[data-upgrade="bucket2"]').tap();await page.locator('#buy-skill').tap();assert.ok(await page.locator('[data-upgrade="bucket2"].is-owned').count());
+  await page.locator('[data-branch="Room"]').tap();
   await page.locator('#restore-room').tap();assert.ok(await page.locator('.workshop-scene.stage-1').count());
   await page.screenshot({path:`${artifacts}/workshop-tree.png`,fullPage:true});
-  await page.getByRole('button',{name:'Start next random model',exact:true}).tap();await page.getByRole('button',{name:'Start attempt',exact:true}).tap();
+  await page.getByRole('button',{name:'Next model',exact:true}).tap();await page.getByRole('button',{name:'Start attempt',exact:true}).tap();
   assert.equal(await page.evaluate(()=>window.__game.trayCount),2);assert.notEqual(await page.evaluate(()=>window.__game.level.id),1);
   await page.locator('#mode-classic').tap();assert.equal(await page.evaluate(()=>window.__game.state.moves),1);
   await page.locator('#mode-workshop').tap();assert.equal(await page.evaluate(()=>window.__game.trayCount),2);
@@ -113,7 +114,7 @@ try{
     assert.equal(await page.evaluate(()=>window.__workshop.rewards.screws.xp),20);
     assert.equal(await page.evaluate(()=>window.__workshop.rewards.completion.xp),0);
     await page.getByRole('button',{name:'Workshop & upgrades',exact:true}).tap();
-    assert.equal(await page.locator('.modal').evaluate(el=>el.scrollTop),0,'skill tree should open at its room and balance');
+    assert.equal(await page.locator('.modal').evaluate(el=>el.scrollTop),0,'skill tree should open without scroll');
     await page.screenshot({path:`${artifacts}/workshop-room.png`,fullPage:true});
     await page.keyboard.press('Tab');await page.keyboard.press('Shift+Tab');
     assert.ok(await page.evaluate(()=>!!document.activeElement.closest('[role="dialog"]')),'focus escaped the skill tree');

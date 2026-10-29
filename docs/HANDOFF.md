@@ -1,5 +1,14 @@
 # Screw Garden handoff
 
+## Icon GUI and fixed branch tree release
+
+The user requested an icon-led GUI and branching upgrades without scrolling, then explicitly authorized publishing this update on October 29, 2026. Baseline is Workshop release `616db6e`. This authorization covers this release; future publishing requires a new request.
+
+`src/icons.ts` provides original inline SVG icons. The Workshop upgrade dialog now uses fixed branch maps (Workbench, Tools, Mastery) plus a Room tab. Select any node, including locked nodes, to inspect its effect and gates; only the separate Install button spends scrap. Real prerequisite edges branch from magnet and XP skills; bucket and shelf chains stay distinct. A fixed detail panel and footer keep all actions on-screen. Controls and currencies use matching icons and retain accessible names/short labels. `GameEffects.press` animates individual CSS scale, preserving positioned nodes' translation. Game balance, saves and rewards are unchanged.
+
+Validation: `npm run test:tree` checks all 16 nodes at 390×844, 360×740 and 320×568, no scrolling or clipped controls, purchase prerequisites/exclusivity, Room restoration, active-run stats unchanged, and focus. Workshop integration tests use node selection followed by Install and the Room tab. The 58 unit tests, production build, Workshop integration, Arcade and both-mode tactile/reduced-motion suites also pass. Keep future changes within this fixed-screen layout.
+
+
 ## Workshop progression release
 
 The user explicitly authorized republishing the current Workshop update to GitHub on October 29, 2026. This release adds the previously reviewed draft to baseline `db21768`. Do not infer permission to publish future changes from this one release request.

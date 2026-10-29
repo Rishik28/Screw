@@ -1,4 +1,5 @@
 import './styles.css';
+import { icon, skillIcons } from './icons';
 import { Game, COLORS } from './game';
 import { levels } from './levels';
 import { BoardRenderer } from './renderer';
@@ -18,13 +19,13 @@ app.innerHTML=`
     </div>
   </header>
   <nav class="mode-tabs" aria-label="Game mode">
-    <button class="mode-tab" id="mode-workshop" aria-pressed="false">workshop</button>
-    <button class="mode-tab" id="mode-classic" aria-pressed="true">classic</button>
-    <button class="mode-tab" id="mode-arcade" aria-pressed="false">arcade · score attack</button>
+    <button class="mode-tab" id="mode-workshop" aria-pressed="false">${icon('home')}<span>workshop</span></button>
+    <button class="mode-tab" id="mode-classic" aria-pressed="true">${icon('bucket')}<span>classic</span></button>
+    <button class="mode-tab" id="mode-arcade" aria-pressed="false">${icon('bolt')}<span>arcade</span></button>
   </nav>
   <section class="game-layout" aria-label="Screw puzzle">
     <section id="workshop-hud" class="workshop-hud" aria-label="Workshop progression" hidden>
-      <button id="open-workshop" class="workshop-wallet" aria-label="Open workshop and skill tree"><span id="wallet"></span><span>upgrades ↗</span></button>
+      <button id="open-workshop" class="workshop-wallet" aria-label="Open workshop and skill tree"><span id="wallet"></span><span>${icon('tree')}</span></button>
       <div class="workshop-runline"><span id="workshop-time" role="timer"></span><span id="workshop-target"></span></div>
     </section>
     <section class="arcade-hud" id="arcade-hud" aria-label="Arcade score and timer" hidden>
@@ -46,10 +47,10 @@ app.innerHTML=`
     <div class="buffer-row" aria-label="Temporary shelf"><span class="sr-only">Shelf</span><div class="buffer-slots"></div></div>
     <p class="status-line" role="status" aria-live="polite"></p>
     <nav class="toolbar" aria-label="Game controls">
-      <button class="tool-button" id="undo"><span class="tool-icon" aria-hidden="true">↶</span>undo</button>
-      <button class="tool-button" id="hint"><span class="tool-icon" aria-hidden="true">☼</span>hint</button>
-      <button class="tool-button" id="magnet" hidden><span class="tool-icon" aria-hidden="true">⊂</span>auto-fill</button>
-      <button class="tool-button" id="restart"><span class="tool-icon" aria-hidden="true">↻</span>restart</button>
+      <button class="tool-button" id="undo">${icon('undo')}undo</button>
+      <button class="tool-button" id="hint">${icon('eye')}hint</button>
+      <button class="tool-button" id="magnet" hidden>${icon('magnet')}auto-fill</button>
+      <button class="tool-button" id="restart">${icon('reset')}<span>restart</span></button>
     </nav>
   </section>
 </main>
@@ -99,14 +100,15 @@ function bindGame() {
   $('#arcade-hud').hidden = !arcade;
   $('#workshop-hud').hidden = !workshop;
   $('#magnet').hidden = !workshop;
-  $('#restart').innerHTML='<span class="tool-icon" aria-hidden="true">↻</span>restart';
+  $('#restart').setAttribute('aria-label','Restart puzzle');
+  setTool('#restart',`${icon('reset')}<span>restart</span>`);
   $('#mode-workshop').setAttribute('aria-pressed', String(!!workshop));
   $('.app-shell').classList.toggle('is-workshop', !!workshop);
   $('#mode-classic').setAttribute('aria-pressed', String(!arcade && !workshop));
   $('#mode-arcade').setAttribute('aria-pressed', String(!!arcade));
   $('.app-shell').classList.toggle('is-arcade', !!arcade);
-  $('#undo').innerHTML = `<span class="tool-icon" aria-hidden="true">↶</span>${workshop ? `undo ${workshop.undoCharges}` : arcade ? 'undo −2s' : 'undo'}`;
-  $('#hint').innerHTML = `<span class="tool-icon" aria-hidden="true">☼</span>${workshop ? `survey ${workshop.hintCharges}` : arcade ? 'hint −2s' : 'hint'}`;
+  setTool('#undo',`${icon('undo')}${workshop ? `undo ${workshop.undoCharges}` : arcade ? 'undo −2s' : 'undo'}`);
+  setTool('#hint',`${icon('eye')}${workshop ? `survey ${workshop.hintCharges}` : arcade ? 'hint −2s' : 'hint'}`);
   update(workshop ? 'Earnings are kept even if the shelf fills. Plan before tapping.' : arcade ? '45 seconds. Buckets +3s. Keep the combo alive.' : game.level.subtitle);
 }
 function start(index: number) {
@@ -225,6 +227,7 @@ function closeModal() {
   $('.modal-backdrop').hidden = true; $('.app-shell').inert = false; lastTick = performance.now(); if(previousFocus?.isConnected&&!previousFocus.closest('[inert]'))previousFocus.focus();
 }
 function modal(symbol: string, title: string, copy: string, primary: string, action: () => void, secondary = 'Keep playing', secondaryAction = closeModal) {
+  $('.modal').classList.remove('tree-modal');
   previousFocus = document.activeElement as HTMLElement;
   $('.modal-symbol').textContent = symbol; $('#modal-title').textContent = title; $('.modal-copy').innerHTML = copy;
   const p = $<HTMLButtonElement>('.primary-button'); p.textContent = primary; p.onclick = () => { closeModal(); action(); };
@@ -316,18 +319,22 @@ viewControl('#rotate-left', () => board?.rotate(-1));
 viewControl('#rotate-right', () => board?.rotate(1));
 viewControl('#reset-view', () => board?.resetView());
 function formatTime(ms:number) { const sec=Math.ceil(ms/1000);return `${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}`; }
-function setTool(selector:string,html:string){const node=$(selector);if(node.innerHTML!==html)node.innerHTML=html;}
+const toolMarkup=new WeakMap<HTMLElement,string>();
+function setTool(selector:string,html:string){const node=$(selector);if(toolMarkup.get(node)!==html){node.innerHTML=html;toolMarkup.set(node,html);}}
 function refreshWorkshop() {
   if(!workshop)return;
-  $('#wallet').textContent=`${profile.xp.toLocaleString()} XP · ${profile.scrap.toLocaleString()} scrap`;
+  const wallet=`${icon('star')}${profile.xp.toLocaleString()} <span class="wallet-divider">/</span> ${icon('scrap')}${profile.scrap.toLocaleString()}`;
+  setTool('#wallet',wallet);
+  $('#wallet').setAttribute('aria-label',`${profile.xp} XP, ${profile.scrap} scrap`);
   $('#workshop-time').textContent=`${formatTime(workshop.remainingMs)} left`;
   $('#workshop-time').classList.toggle('is-low',workshop.remainingMs<30000);
   $('#workshop-target').textContent=`speed target ${formatTime(workshop.targetMs)}`;
-  setTool('#undo',`<span class="tool-icon" aria-hidden="true">↶</span>undo ${workshop.undoCharges}`);
-  setTool('#hint',`<span class="tool-icon" aria-hidden="true">☼</span>survey ${workshop.hintCharges}`);
-  setTool('#magnet',`<span class="tool-icon" aria-hidden="true">⊂</span>${workshop.skills.has('magnet')?`auto ${workshop.charges}/${workshop.maxCharges}<small>${workshop.chargeProgress}/${workshop.chargeGoal} recharge</small>`:'auto locked'}`);
+  setTool('#undo',`${icon('undo')}undo ${workshop.undoCharges}`);
+  setTool('#hint',`${icon('eye')}survey ${workshop.hintCharges}`);
+  setTool('#magnet',`${icon('magnet')}${workshop.skills.has('magnet')?`auto ${workshop.charges}/${workshop.maxCharges}<small>${workshop.chargeProgress}/${workshop.chargeGoal} recharge</small>`:'auto locked'}`);
   $('#magnet').toggleAttribute('disabled',workshop.ended||!workshop.charges||!workshop.autoFillIds.length);
-  $('#restart').textContent='end run';
+  setTool('#restart',`${icon('close')}<span>end</span>`);
+  $('#restart').setAttribute('aria-label','End attempt');
 }
 function workshopClock(){
   stopClock();lastTick=performance.now();
@@ -365,18 +372,36 @@ function workshopScene(){
   const stage=profile.restoration;
   return `<div class="workshop-scene stage-${stage}" role="img" aria-label="Workshop restoration ${stage} of 3: ${['empty workroom','workbench restored','tool wall restored','collection shelves restored'][stage]}"><div class="room-window"></div><div class="room-bench"></div><div class="room-tools">⌁ ⊥ ⌕</div><div class="room-shelf">▱ ▥ ▧</div><span>${['an empty room','a place to work','tools within reach','a home for the collection'][stage]}</span></div>`;
 }
+let skillBranch='Workbench';
+let selectedSkill='bucket2';
+const treePositions:Record<string,[number,number]>={bucket2:[26,17],bucket3:[26,50],bucket4:[26,83],shelf4:[74,17],shelf5:[74,50],shelf6:[74,83],magnet:[50,17],undo:[15,17],survey:[85,17],charger:[32,70],reservoir:[68,70],time1:[20,17],time2:[20,70],xp1:[70,17],scholar:[53,70],salvager:[87,70]};
+const shortSkillCopy:Record<string,string>={magnet:'Collect exposed matching screws. Recharge every 3 bucket clears.',shelf6:'6 shelf spaces. Excludes Fast charger.',charger:'Recharge in 2 bucket clears. Excludes Storage specialist.',scholar:'+35% base XP. Excludes Salvage specialist.',salvager:'+25% base scrap. Excludes Research specialist.'};
+const skillRanks:Record<string,string>={bucket2:'II',bucket3:'III',bucket4:'IV',shelf4:'4',shelf5:'5',shelf6:'6',time1:'I',time2:'II'};
 function showWorkshop(){
   if(!workshop)return;
+  const room=skillBranch==='Room';
+  const skills=UPGRADES.filter(u=>u.branch===skillBranch);
+  if(!room&&!skills.some(u=>u.id===selectedSkill))selectedSkill=skills[0].id;
+  const selected=UPGRADES.find(u=>u.id===selectedSkill)!;
   const cost=RESTORATION_COSTS[profile.restoration];
-  const tree=['Workbench','Tools','Mastery'].map(branch=>`<section class="skill-branch"><h3>${branch}</h3><div class="skill-path">${UPGRADES.filter(u=>u.branch===branch).map(u=>{
-    const reason=purchaseReason(profile,u),owned=profile.upgrades.includes(u.id);
-    return `<button class="skill-node ${owned?'is-owned':''}" data-upgrade="${u.id}" ${reason?'disabled':''}><strong>${owned?'✓ ':''}${u.name}</strong><span>${u.description}</span><small>${owned?'Installed':`${u.cost} scrap · ${u.xp} XP unlock`}</small>${reason&&!owned?`<small>${reason}</small>`:''}</button>`;
-  }).join('')}</div></section>`).join('');
-  modal('⌂','Your workshop',`<button id="workshop-back" class="workshop-back">← ${workshop.ended?'Results':'Continue attempt'}</button><p class="workshop-balance">${profile.xp} total XP · ${profile.scrap} scrap</p>${storageFailed?'<p role="alert">Device storage is unavailable. Progress lasts only while this page stays open.</p>':''}${workshopScene()}<button id="restore-room" class="restore-button" ${cost===undefined||profile.scrap<cost?'disabled':''}>${cost===undefined?'Workshop fully restored':`Restore ${['workbench','tool wall','collection shelves'][profile.restoration]} · ${cost} scrap`}</button><p>XP unlocks skills; scrap buys them. Upgrades apply next attempt. Connected nodes require the preceding skill; specialist choices are permanent on this save.</p><div class="skill-tree">${tree}</div>` ,workshop.ended?'Start next random model':'Continue attempt',()=>{if(workshop!.ended)newWorkshopAttempt();},workshop.ended?'Retry this model':'End attempt & keep earnings',()=>{if(workshop!.ended){const variant=workshop!.game.level;closeModal();newWorkshopAttempt(variant);}else confirmAbandon();});
-  $('.modal').scrollTop=0;$('.modal').focus({preventScroll:true});
+  const edges=skills.filter(u=>u.requires).map(u=>{
+    const from=treePositions[u.requires!],to=treePositions[u.id];
+    return `<path class="${profile.upgrades.includes(u.id)?'is-owned':''}" d="M ${from[0]} ${from[1]} V ${(from[1]+to[1])/2} H ${to[0]} V ${to[1]}"/>`;
+  }).join('');
+  const nodes=skills.map(u=>{
+    const owned=profile.upgrades.includes(u.id),reason=purchaseReason(profile,u),pos=treePositions[u.id];
+    return `<button class="skill-orb ${owned?'is-owned':reason?'is-locked':'is-ready'}" data-upgrade="${u.id}" style="left:${pos[0]}%;top:${pos[1]}%" aria-label="${u.name}${owned?', installed':reason?', '+reason:', available'}" aria-pressed="${u.id===selectedSkill}" title="${u.name}">${icon(skillIcons[u.id])}<span class="node-rank">${skillRanks[u.id]||''}</span><span class="node-state">${icon(owned?'check':reason?'lock':'plus')}</span></button>`;
+  }).join('');
+  const reason=purchaseReason(profile,selected),owned=profile.upgrades.includes(selected.id);
+  const details=room?`<div class="skill-info"><h3>${icon('home')} Restore your room</h3><p>${['Rebuild the workbench.','Put your tools within reach.','Give the collection a home.','Your workshop is restored.'][profile.restoration]}</p><button id="restore-room" class="skill-buy" ${cost===undefined||profile.scrap<cost?'disabled':''}>${icon(cost===undefined?'check':'tools')} ${cost===undefined?'Restored':`${cost} scrap`}</button></div>`:
+    `<div class="skill-info" aria-live="polite"><h3>${icon(skillIcons[selected.id])}${selected.name}</h3><p>${shortSkillCopy[selected.id]||selected.description}</p><div class="skill-cost"><span>${icon('star')}${selected.xp}</span><span>${icon('scrap')}${selected.cost}</span></div><button id="buy-skill" class="skill-buy" ${reason?'disabled':''}>${icon(owned?'check':reason?'lock':'tools')} ${owned?'Installed':reason||'Install'}</button></div>`;
+  modal('','Workshop',`<div class="tree-top"><button id="workshop-back" aria-label="${workshop.ended?'Back to results':'Continue attempt'}">${icon('close')}</button><span>${icon('star')}${profile.xp}</span><span>${icon('scrap')}${profile.scrap}</span></div><nav class="tree-tabs" aria-label="Upgrade branches">${[['Workbench','bucket'],['Tools','tools'],['Mastery','star'],['Room','home']].map(([name,symbol])=>`<button data-branch="${name}" aria-label="${name}" aria-pressed="${skillBranch===name}">${icon(symbol)}<span>${name}</span></button>`).join('')}</nav>${storageFailed?'<p class="storage-warning" role="alert">Storage unavailable. Progress stays in this tab.</p>':''}<div class="tree-map ${room?'is-room':''}">${room?workshopScene():`<svg class="tree-links" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${edges}</svg>${nodes}`}</div>${details}<p class="tree-footnote">${room?`${profile.restoration}/3 restored`: 'XP unlocks · scrap installs · active next run'}</p>`,workshop.ended?'Next model':'Continue',()=>{if(workshop!.ended)newWorkshopAttempt();},workshop.ended?'Retry':'End run',()=>{if(workshop!.ended){const variant=workshop!.game.level;closeModal();newWorkshopAttempt(variant);}else confirmAbandon();});
+  $('.modal').classList.add('tree-modal');$('.modal').scrollTop=0;$('.modal').focus({preventScroll:true});
   $('#workshop-back').onclick=()=>{if(workshop!.ended)finishWorkshop();else closeModal();};
-  $('.modal-copy').querySelectorAll<HTMLButtonElement>('[data-upgrade]').forEach(button=>button.onclick=()=>{if(purchase(profile,button.dataset.upgrade!)){saveWorkshop();refreshWorkshop();showWorkshop();effects.upgrade();const node=$<HTMLButtonElement>(`[data-upgrade="${button.dataset.upgrade}"]`);node.focus();}});
-  $('#restore-room').onclick=()=>{if(restore(profile)){saveWorkshop();showWorkshop();effects.upgrade();$('#restore-room').focus();}};
+  $('.modal-copy').querySelectorAll<HTMLButtonElement>('[data-branch]').forEach(button=>button.onclick=()=>{skillBranch=button.dataset.branch!;showWorkshop();$(`[data-branch="${skillBranch}"]`).focus({preventScroll:true});});
+  $('.modal-copy').querySelectorAll<HTMLButtonElement>('[data-upgrade]').forEach(button=>button.onclick=()=>{selectedSkill=button.dataset.upgrade!;showWorkshop();$(`[data-upgrade="${selectedSkill}"]`).focus({preventScroll:true});});
+  if(room)$('#restore-room').onclick=()=>{if(restore(profile)){saveWorkshop();showWorkshop();effects.upgrade();}};
+  else $('#buy-skill').onclick=()=>{if(purchase(profile,selectedSkill)){saveWorkshop();refreshWorkshop();showWorkshop();effects.upgrade();$(`[data-upgrade="${selectedSkill}"]`).focus({preventScroll:true});}};
 }
 $('#mode-workshop').onclick=()=>{if(!workshop)enterWorkshop();};
 $('#open-workshop').onclick=showWorkshop;
