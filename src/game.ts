@@ -14,11 +14,13 @@ export class Game {
   clearedTrays: TrayClear[] = [];
   private queueIndex = 0;
   private history: {state: GameState; queueIndex: number}[] = [];
-  constructor(public level: Level) { this.state = this.initial(); }
+  constructor(public level: Level, public readonly options: {trayCount?: number; bufferCapacity?: number} = {}) { this.state = this.initial(); }
+  get trayCount() { return Math.max(1, Math.min(4, Math.floor(this.options.trayCount ?? ACTIVE_TRAY_COUNT))); }
+  get bufferCapacity() { return Math.max(3, Math.min(8, Math.floor(this.options.bufferCapacity ?? BUFFER_CAPACITY))); }
   private initial(): GameState {
-    this.queueIndex = Math.min(ACTIVE_TRAY_COUNT, this.level.trayOrder.length);
+    this.queueIndex = Math.min(this.trayCount, this.level.trayOrder.length);
     return {level:this.level, removedIds:new Set(), removedPlateIds:new Set(),
-      trays:this.level.trayOrder.slice(0,ACTIVE_TRAY_COUNT).map(color=>({color,count:0})),
+      trays:this.level.trayOrder.slice(0,this.trayCount).map(color=>({color,count:0})),
       buffer:[], completedTrays:0, moves:0, status:'playing'};
   }
   get canUndo() { return this.history.length > 0; }
@@ -32,7 +34,7 @@ export class Game {
   getHint(): {screwId: string | null; message: string} {
     if (this.state.status === 'won') return {screwId:null,message:'This model is complete. Continue to the next one!'};
     if (this.state.status === 'lost') return {screwId:null,message:'Use Undo to make room on your shelf.'};
-    const search = new Game(this.level);
+    const search = new Game(this.level, this.options);
     search.state = this.clone();
     search.queueIndex = this.queueIndex;
     // Most deviations still preserve the authored topological solution. Verify
@@ -92,7 +94,7 @@ export class Game {
     const tray = this.state.trays.find(t=>t.color===screw.color && t.count<3);
     if (tray) tray.count++; else this.state.buffer.push(screw.color);
     this.settle();
-    if (this.state.buffer.length > BUFFER_CAPACITY) this.state.status='lost';
+    if (this.state.buffer.length > this.bufferCapacity) this.state.status='lost';
     else if (this.state.removedIds.size===this.level.screws.length && this.state.buffer.length===0 && this.state.trays.length===0) this.state.status='won';
     return true;
   }

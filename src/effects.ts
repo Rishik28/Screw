@@ -59,6 +59,29 @@ export class GameEffects {
     ], 230);
     this.shake(strength);
   }
+  press(button: HTMLElement) {
+    if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+    this.track(button.animate([{transform:'scale(1)'},{transform:'scale(.94)',offset:.35},{transform:'scale(1)'}],{duration:170,easing:'ease-out'}));
+  }
+  upgrade() {
+    const node=document.querySelector('.workshop-scene');
+    if(!node||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+    this.track(node.animate([{filter:'brightness(1)'},{filter:'brightness(1.3)',offset:.3},{filter:'brightness(1)'}],{duration:450}));
+  }
+  salvage(point: Point, color: string, text: string, part: boolean) {
+    this.impact(point,color,part?3.5:1.8);
+    this.burst(point,color,text,part);
+    if(!matchMedia('(prefers-reduced-motion: reduce)').matches){
+      const rect=this.host.getBoundingClientRect();
+      const destination=document.querySelector('#wallet')?.getBoundingClientRect();
+      if(destination)for(let i=0;i<3;i++){
+        const chip=this.node('salvage-chip',point);chip.style.background=i===1?'#f3d16f':color;
+        const screenRect=this.screen.getBoundingClientRect();this.bucketLayer.append(chip);
+        chip.style.left=`${point.x+rect.x-screenRect.x}px`;chip.style.top=`${point.y+rect.y-screenRect.y}px`;
+        this.animate(chip,[{transform:'translate(-50%,-50%) scale(1)',opacity:1},{transform:`translate(${destination.x-rect.x+destination.width/2-point.x}px,${destination.y-rect.y-point.y}px) scale(.3)`,opacity:0}],550+i*50);
+      }
+    }
+  }
   captureBuckets() {
     const root = this.screen.getBoundingClientRect();
     return Array.from(this.screen.querySelectorAll<HTMLElement>('.tray-row > .tray')).map(node => {

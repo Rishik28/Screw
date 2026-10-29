@@ -1,5 +1,19 @@
 # Screw Garden handoff
 
+## Workshop progression release
+
+The user explicitly authorized republishing the current Workshop update to GitHub on October 29, 2026. This release adds the previously reviewed draft to baseline `db21768`. Do not infer permission to publish future changes from this one release request.
+
+`src/workshop.ts` contains a versioned sanitized local profile, XP-gated/scrap-priced skill tree, exclusive specialist choices, three visual restoration stages, a persisted shuffled no-repeat model deck, randomized topological/color variants, and a timed `WorkshopRun`. Start with one bucket/three shelf spaces; keep Classic and Arcade rules separate. New variants keep physical blockers intact and author a winning witness, validated for 1–4 buckets with three shelf spaces.
+
+Rewards: 5 XP/2 scrap per unique screw, 25 XP/10 scrap per newly exposed authored interior depth, completion +30% of base earnings, speed +20%. Base multipliers accumulate before rounding. Rewards bank immediately and survive failures, timeouts, abandon, and refresh. Undo cannot repeat screw/discovery/recharge rewards. Retry preserves the variant; next model draws the deck. A run snapshots upgrades, so purchases apply next attempt. Active runs survive mode switches in memory; reload keeps profile but starts a new attempt.
+
+Targets start at `(35 + screws*2 + parts*.9)` seconds; run limit is target +75s plus upgrades. These need human balance tuning; do not claim they are measured realistic completion times. Menus/background/mode switches pause the run. Auto-fill removes up to three actual exposed matching screws from one bucket and recharges with new high-water bucket clears, never replayed clears. Surveys point to/highlight a part instead of identifying a solution screw. The user rejected contracts and challenge modifiers; do not add them.
+
+Presentation: Workshop wallet HUD, pre-run time/reward brief, results breakdown, three tree branches, CSS low-poly room restoration, salvage chips traveling to the wallet, pixel bursts, discovery/recharge popups, button depressions, and tumbling falling parts. Honor reduced motion. Never scale a screw hit target on pointer-down; its anchored transform must stay stable. Upgrade dialog opens at the top and traps focus among enabled buttons.
+
+Validation: 58 unit tests pass, covering 32 random model variants at all four bucket capacities, reward accounting, failure, purchases, branches, minimum-capacity solvability, charge replay protection and saves. Workshop browser suite passes a real-pointer/touch full teardown, failure, all reward paths, local persistence, upgrades/restoration, mode preservation, auto-fill, surveys, timeout, reduced motion, and dialog focus. Classic smoke (42 screws, rotation/pinch, six-face extraction/Undo, reduced motion, WebGL fallback), Arcade and both-mode tactile suites pass. Use `npm run test:workshop` (Chromium; `TEST_URL` override). Full Classic campaign was not repeated because physical geometry/blockers are unchanged; use smoke plus Arcade/tactile checks for these shared presentation changes.
+
 ## Continue here
 
 Work in the existing `/workspace/Screw` checkout. Read this file, inspect `git status`, and check recent commits before editing. Do not create a worktree unless explicitly requested. Local processes and `/tmp` artifacts may not survive a new task.
@@ -130,7 +144,7 @@ Native control clicks and RAF animation updates are asynchronous: await the actu
 
 ## Publication
 
-Commit and push to `main` when the user authorizes publication; the current session has standing authorization to publish the requested game improvements. A push runs `.github/workflows/pages.yml`: install, unit tests, portable static build, then update `gh-pages`. Pages is configured to deploy that branch at `/ (root)`. Verify the newest publish and Pages runs succeed before saying a release is live.
+The user authorized publishing the Workshop release on October 29, 2026. Future releases require a new explicit publication request. A push runs `.github/workflows/pages.yml`: install, unit tests, portable static build, then update `gh-pages`. Pages is configured to deploy that branch at `/ (root)`. Verify the newest publish and Pages runs succeed before saying a release is live.
 
 Git HTTPS authentication is supplied by the cloud proxy. Use existing authentication; do not ask for tokens merely because `gh auth` fails. In this environment Git/network commands and Chromium may require the normal sandbox escalation flow. `api.github.com` and the live Pages host were blocked by the active allowlist at last inspection; GitHub's public Actions HTML on `github.com` was available for deployment verification. Draft network additions are not proof of applied access. Never bypass policy or print credentials.
 

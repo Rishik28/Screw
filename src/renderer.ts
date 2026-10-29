@@ -175,6 +175,15 @@ export class BoardRenderer {
     }
     this.positionButtons();
   }
+  hintPart(id:string){
+    const screw=this.game?.level.screws.find(s=>s.plateId===id&&this.game!.isAvailable(s.id));
+    if(screw){const normal=this.normals.get(screw.id);if(normal){this.yaw=Math.atan2(normal.x,normal.z);this.pitch=Math.asin(Math.max(-1,Math.min(1,normal.y)));this.updateCamera();}}
+    const plate=this.plates.find(p=>p.userData.plateId===id);
+    if(plate&&plate.material instanceof THREE.MeshLambertMaterial){
+      plate.material.emissive.set('#393323');this.dirty=true;
+      setTimeout(()=>{plate.material instanceof THREE.MeshLambertMaterial&&plate.material.emissive.set(0);this.dirty=true;},2200);
+    }
+  }
   hint(id:string){this.dirty=true;this.hintId=id;const normal=this.normals.get(id);if(normal){this.yaw=Math.atan2(normal.x,normal.z);this.pitch=Math.asin(Math.max(-1,Math.min(1,normal.y)));this.updateCamera();}setTimeout(()=>{if(this.hintId===id){this.hintId='';this.dirty=true;}},3500);}
   private resize(){this.dirty=true;const w=this.host.clientWidth,h=this.host.clientHeight;if(!w||!h)return;const rasterWidth=Math.min(360,Math.max(240,Math.round(w*.85)));this.renderer.setSize(rasterWidth,Math.round(h*rasterWidth/w),false);const halfY=Math.max(this.fitHeight,this.fitWidth*h/w);this.camera.left=-halfY*w/h;this.camera.right=halfY*w/h;this.camera.top=halfY;this.camera.bottom=-halfY;this.camera.updateProjectionMatrix();this.positionButtons();}
   private positionButtons(){if(!this.game)return;this.assembly.updateMatrixWorld(true);const occluders=this.plates.filter(p=>p.visible&&!this.game!.state.removedPlateIds.has(p.userData.plateId));for(const[id,group]of this.screws){const button=this.buttons.get(id)!;const normal=this.normals.get(id)!;const point=group.position.clone().addScaledVector(normal,.14*group.scale.x);const eye=this.camera.getWorldDirection(new THREE.Vector3()).negate();let visible=group.visible&&!this.game.state.removedIds.has(id)&&normal.dot(eye)>.08;
@@ -201,7 +210,10 @@ export class BoardRenderer {
     this.frame=requestAnimationFrame(this.animate);
     for(const[object,exit]of this.exits){if(!object.visible)continue;this.dirty=true;const p=Math.max(0,Math.min(1,(performance.now()-exit.start)/(this.arcade?260:600)));
       if(exit.normal){object.position.copy(exit.position).addScaledVector(exit.normal,p*.9);object.quaternion.copy(exit.quaternion).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),p*Math.PI*4));}
-      else object.position.copy(exit.position).addScaledVector(new THREE.Vector3(0,-1,0),p*1.2);
+      else {
+        object.position.copy(exit.position).add(new THREE.Vector3(Math.sin(p*Math.PI)*.12,-p*p*1.5,Math.sin(p*Math.PI)*.1));
+        object.quaternion.copy(exit.quaternion).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(p*.14,0,p*.2)));
+      }
       if(p===1)object.visible=false;
     }
     if(this.dirty){this.positionButtons();this.renderer.render(this.scene,this.camera);this.dirty=false;}

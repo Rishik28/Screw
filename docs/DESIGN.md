@@ -86,3 +86,9 @@ The model view uses wider edge-to-edge framing. Pinch to zoom, move two fingers
 together to pan, and use Reset/Home to recenter. Rotation reaches the top and
 bottom faces for deep cavities. Covered screw meshes stay hidden until their
 physical blockers are removed, preserving readability and mobile performance.
+
+## Workshop progression and tactile rewards
+
+Keep the sparse blue game board. The Workshop tab adds a compact wallet/time strip, one starting bucket, and a three-slot shelf. Energy comes from momentary salvage chips, numbers, layered-discovery bursts, rechargeable-tool callouts, and short button depressions. Detaching parts tumble slightly while accelerating downward; screws retain axial extraction and exact Undo. Avoid moving the screw hit target when pressing it. Reduced motion retains numeric feedback and static completion checks.
+
+The workshop is a quiet miniature room in the upgrade dialog: a workbench, then a tool wall, then display shelves. Three vertical skill paths separate Workbench, Tools, and Mastery. Show scrap prices, total-XP gates, prerequisite names and exclusive specialist choices on each node. Purchases affect the next attempt. Results itemize screws, discoveries, completion, and speed bonuses so failure still shows meaningful progress.

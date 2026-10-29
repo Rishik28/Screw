@@ -33,6 +33,22 @@ The `Publish game` workflow builds and updates the `gh-pages` branch on every pu
 
 For a manual static build with portable asset paths, use `npm run build -- --base=./`.
 
+## Workshop · incremental progression
+
+Select **Workshop** to start a separate timed salvage attempt with one bucket and three shelf spaces. Models use a shuffled, persisted deck with no repeats until every model has appeared. New attempts randomize the physical dismantling witness and color layout; retry preserves the same puzzle so learning matters. All variants have a verified solution at minimum capacity. Limited Undo and part-level surveys replace unlimited step-by-step guidance here; Classic remains untimed with free tools.
+
+- Each new screw pays 5 XP and 2 scrap immediately; revealing a previously concealed interior depth pays 25 XP and 10 scrap once per attempt.
+- Failure, timeout, or ending a run keeps all earnings. Undo cannot repay a screw/discovery or farm tool recharge.
+- Completing a model adds 30% of its base earnings; finishing within its displayed active-time target adds another 20%. Missing the target still permits the completion bonus.
+- Targets initially use `35 + 2 × screws + 0.9 × detachable parts` seconds, about 2:17–5:25. The run limit is 75 seconds longer, plus time upgrades. These are initial tuning values, not measured player completion times. Menus, mode switches, and background time pause the clock.
+- Total XP unlocks nodes; scrap buys them. Workbench, Tools, and Mastery offer bucket capacity (maximum four), shelf expansions, time, XP, charged auto-fill, and additional Undo/survey charges. Storage vs charging and XP vs scrap specializations are exclusive choices. Upgrades take effect next attempt.
+- Auto-fill collects up to three actual **exposed** screws matching one active bucket; it never bypasses physical blockers. Three new bucket clears recharge a use (two with Fast charger). Replaying bucket clears with Undo does not recharge again.
+- Restore the workbench, tool wall, and collection shelves with scrap. Restoration is visual and does not hide mandatory upgrades.
+
+XP, scrap, purchases, restoration, completed-model count, and the random deck save locally on this device. An active puzzle survives mode changes in the open page; reloading starts a new attempt while retaining banked earnings. Storage failures display a warning in the Workshop. No accounts, server, ads, or purchases are involved.
+
+Use `npm run test:workshop` against a local production preview for real-pointer/touch progression, rewards, failure, purchases, restoration, local save, charged tools, timer, reduced motion, and skill-tree accessibility checks.
+
 ## Classic
 
 Tap the puzzle counter beside the model name to open the collection. Select any model to play or replay; cancel to keep your current attempt.
@@ -60,6 +76,7 @@ Run `npm run test:tactile` against the preview for both modes’ fill animations
 
 ## Develop and contribute
 
+- `src/workshop.ts`: persistent profile, upgrade tree, randomized puzzles, rewards, charged tools, and active-time runs.
 - `src/arcade.ts`: compact rounds, score/combo clock, penalties, and reversible rewards.
 - `src/effects.ts`: bounded pixel particles, numbers, and flashes.
 - `src/game.ts`: game state, tray and shelf rules, undo, and restart.
