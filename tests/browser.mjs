@@ -1,7 +1,7 @@
 // Build then start `npm run preview -- --port 4173` before running this suite.
 // Uses system Chromium; override CHROMIUM_PATH, TEST_URL and TEST_ARTIFACTS as needed.
 import assert from 'node:assert/strict';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { chromium } from 'playwright-core';
 const smoke = process.argv.includes('--smoke');
 const artifacts = process.env.TEST_ARTIFACTS || '/tmp/screw-garden-browser';
@@ -44,7 +44,7 @@ try {
     assert.equal(await page.evaluate(id => window.__game.isAvailable(id), id), true, `rule-blocked solution screw ${id}`);
     const target = page.locator(`[data-screw-id="${id}"]`);
     const normal = await page.evaluate(id => window.__game.level.screws.find(s => s.id === id).normal, id);
-    const desiredPitch = Math.max(-1.1, Math.min(1.1, Math.asin(normal[1])));
+    const desiredPitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, Math.asin(normal[1])));
     const view = await page.evaluate(() => window.__board.getView());
     if (Math.abs(view.pitch - desiredPitch) > .2) {
       await page.locator('.board-wrap').focus();
@@ -73,13 +73,21 @@ try {
       await page.locator('#rotate-right').tap(); rotations++;
       await page.waitForTimeout(70);
     }
+    const expectedHint=await page.evaluate(()=>window.__game.getHint().screwId);
+    if(expectedHint===id){
+      await page.locator('#hint').tap();
+      await page.waitForFunction(id=>window.__board.hintId===id,id);
+      if(await target.isVisible()&&await target.evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)===el;}))return target;
+    }
     await page.screenshot({ path: `${artifacts}/unreachable-${id}.png`, fullPage: true });
-    console.log('UNREACHABLE', await page.evaluate(id => {
+    const failure=await page.evaluate(id => {
       const el = document.querySelector(`[data-screw-id="${id}"]`), r = el.getBoundingClientRect();
       return {id, view: window.__board.getView(), hidden: el.hidden, disabled: el.disabled,
-        rect: {x:r.x,y:r.y,w:r.width,h:r.height}, over: document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.outerHTML,
+        rect: {x:r.x,y:r.y,w:r.width,h:r.height}, over: document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.getAttribute('data-screw-id') || document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.className,
         removed: [...window.__game.state.removedIds]};
-    }, id));
+    }, id);
+    await writeFile(`${artifacts}/unreachable-${id}.json`,JSON.stringify(failure,null,2));
+    console.log('UNREACHABLE', {...failure,removed:failure.removed.length});
     throw new Error(`Screw ${id} never became reachable through a full rotation`);
   }
   for (const [width, height] of [[390, 844], [360, 740], [320, 568]]) {
@@ -126,6 +134,15 @@ try {
   assert.equal(afterPinch.width, beforePinch.width);
   assert.equal(await page.evaluate(() => window.__game.state.moves), 0, 'pinch removed a screw');
   await page.screenshot({path:`${artifacts}/after-pinch.png`,fullPage:true});
+  const panStart=await page.evaluate(()=>window.__board.getView());
+  await touch.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{id:1,x:center.x-35,y:center.y},{id:2,x:center.x+35,y:center.y}]});
+  await touch.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{id:1,x:center.x-5,y:center.y+20},{id:2,x:center.x+65,y:center.y+20}]});
+  await touch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  const panned=await page.evaluate(()=>window.__board.getView());
+  assert.ok(Math.abs(panned.panX-panStart.panX)>.01&&Math.abs(panned.panY-panStart.panY)>.01,'two-finger pan did not move the inspection view');
+  assert.equal(await page.evaluate(()=>window.__game.state.moves),0,'panning removed a screw');
+  await page.locator('#reset-view').tap();
+  await page.waitForFunction(()=>window.__board.getView().zoom===1&&window.__board.getView().panX===0&&window.__board.getView().panY===0);
   const first = await page.evaluate(() => window.__game.level.solution[0]);
   let target = await reveal(first);
   await page.screenshot({ path: `${artifacts}/before-rotation.png`, fullPage: true });
@@ -167,9 +184,35 @@ try {
     return {position:screw.position.toArray(),quaternion:screw.quaternion.toArray(),visible:screw.visible};
   }, id);
   const levelsToTest = smoke ? 1 : levelCount;
-  for (let level = 1; level <= levelsToTest; level++) {
+  const startLevel=smoke?1:Number(process.env.TEST_START_LEVEL||1);
+  assert.ok(Number.isInteger(startLevel)&&startLevel>=1&&startLevel<=levelsToTest);
+  if(startLevel>1){
+    await page.getByRole('button',{name:/^Choose puzzle/}).tap();
+    await page.locator(`[data-level-index="${startLevel-1}"]`).tap();
+    await page.getByRole('button',{name:'Play this puzzle',exact:true}).tap();
+    await page.waitForFunction(level=>window.__game.level.id===level,startLevel);
+  }
+  for (let level = startLevel; level <= levelsToTest; level++) {
     if (level === 2) {
-      const losingPath = ['lantern-roof-s2', 'glass-front-s1', 'glass-front-s2', 'glass-back-s1', 'glass-left-s1', 'glass-right-s1'];
+      const losingPath = await page.evaluate(() => {
+        const original=window.__game, simulated=new original.constructor(original.level);
+        const failed=new Set();let visits=0;
+        function search(path){
+          if(simulated.state.status==='lost')return path;
+          if(path.length>=20||++visits>5000)return null;
+          const key=[...simulated.state.removedIds].sort().join(',');if(failed.has(key))return null;
+          const active=new Set(simulated.state.trays.map(t=>t.color));
+          const candidates=simulated.level.screws.filter(s=>simulated.isAvailable(s.id)).sort((a,b)=>Number(active.has(a.color))-Number(active.has(b.color)));
+          const equivalent=new Set();
+          for(const screw of candidates){
+            const group=screw.plateId+':'+screw.color;if(equivalent.has(group))continue;equivalent.add(group);
+            simulated.selectScrew(screw.id);const found=search([...path,screw.id]);simulated.undo();if(found)return found;
+          }
+          failed.add(key);return null;
+        }
+        return search([]);
+      });
+      assert.ok(losingPath,'no legal overflow path found for recovery coverage');
       for (const id of losingPath) await (await reveal(id)).tap();
       assert.equal(await page.evaluate(() => window.__game.state.status), 'lost');
       assert.equal(await page.locator('.modal-backdrop').isVisible(), true);
@@ -180,6 +223,7 @@ try {
       await page.locator('#restart').tap();
       assert.equal(await page.evaluate(() => window.__game.state.moves), 0);
     }
+    let interiorCaptured=false;
     const ids = await page.evaluate(() => window.__game.level.solution);
     for (let i = 0; i < ids.length; i++) {
       const target = await reveal(ids[i]);
@@ -219,6 +263,13 @@ try {
         await (await reveal(ids[i])).tap();
         extractionFaces.add(face);
       }
+      if(!interiorCaptured&&await page.evaluate(()=>{
+        const state=window.__game.state;
+        return state.level.plates.filter(p=>!p.interior).every(p=>state.removedPlateIds.has(p.id))
+          &&state.level.plates.some(p=>p.interior&&!state.removedPlateIds.has(p.id));
+      })){
+        await page.screenshot({path:`${artifacts}/interior-${level}.png`,fullPage:true});interiorCaptured=true;
+      }
       assert.ok(await page.locator('.tray').count() <= 4);
       if (level === levelCount && i === 0) await page.screenshot({ path: `${artifacts}/complex-last-level.png`, fullPage: true });
     }
@@ -236,7 +287,7 @@ try {
   assert.ok(rotations > 0, 'campaign never exercised model rotation');
   assert.equal(extractionFaces.size, 6, 'did not verify extraction on all six face directions');
   assert.deepEqual(errors, [], 'browser errors');
-  console.log(`PASS (${smoke ? "smoke: first level only; campaign overflow and later levels skipped" : "full campaign"}): portrait, WebGL, four buckets, model-only pinch, touch-drag rotation, six-face outward extraction/Undo, focus, hints/restart, saved progress. ${removed} screws, ${rotations} turns. Screenshots: ${artifacts}`);
+  console.log(`PASS (${smoke ? "smoke: first level only; campaign overflow and later levels skipped" : `campaign levels ${startLevel}–${levelCount}`}): portrait, WebGL, four buckets, model-only pinch, touch-drag rotation, six-face outward extraction/Undo, focus, hints/restart, saved progress. ${removed} screws, ${rotations} turns. Screenshots: ${artifacts}`);
   const reduced = await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,reducedMotion:'reduce'});
   const reducedPage = await reduced.newPage();
   const reducedErrors=[];

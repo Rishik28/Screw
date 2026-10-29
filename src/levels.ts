@@ -1,4 +1,5 @@
 import { OBJECT_MODELS } from './objects';
+import { DETAILED_MODELS, CLASSIC_SCREW_SCALE } from './detailed-models';
 
 export const COLORS = {
   coral: '#f44757', blue: '#2378ee', mint: '#13ac72', gold: '#f7b500',
@@ -10,7 +11,7 @@ export interface Plate {
   width: number; height: number; rotation: number; scale: number;
   layer: number; color: string;
   primitive?: 'box' | 'cylinder' | 'sphere' | 'cone' | 'wedge' | 'model';
-  size?: [number,number,number]; rotationX?: number; rotationY?: number; label?: string;
+  size?: [number,number,number]; rotationX?: number; rotationY?: number; label?: string; interior?: boolean;
   details?: typeof OBJECT_MODELS[number]['parts'][number]['details'];
 }
 export interface Screw {
@@ -19,6 +20,7 @@ export interface Screw {
 }
 export interface Level {
   id: number; name: string; subtitle: string; model: string;
+  screwScale?: number; estimatedMinutes?: string; layerCount?: number;
   plates: Plate[]; screws: Screw[]; trayOrder: Color[]; solution: string[];
 }
 
@@ -28,13 +30,13 @@ const palette = Object.keys(COLORS) as Color[];
  * group is exactly three screws, spread over different accessible parts where
  * possible. Four buckets cover the next twelve screws; exposed future colors
  * compete for the five shelf slots, making free choices consequential. */
-function assemblyLevel(model: typeof OBJECT_MODELS[number], index: number): Level {
+export function assemblyLevel(model: typeof OBJECT_MODELS[number], index: number): Level {
   const plates: Plate[] = model.parts.map(part=>({
     id:part.id, label:part.label, shape:model.id, primitive:part.primitive,
     x:part.position[0], y:part.position[1], z:part.position[2],
     width:part.size[0],height:part.size[1],size:part.size,
     rotationX:part.rotation[0],rotationY:part.rotation[1],rotation:part.rotation[2],
-    scale:1,layer:part.stage,color:part.color,details:part.details,
+    scale:1,layer:part.stage,interior:part.interior,color:part.color,details:part.details,
   }));
   const screws: Screw[] = model.parts.flatMap(part=>part.anchors.map((anchor,slot)=>({
     id:`${part.id}-s${slot}`,plateId:part.id,color:'coral' as Color,
@@ -68,5 +70,6 @@ function assemblyLevel(model: typeof OBJECT_MODELS[number], index: number): Leve
     plates,screws,trayOrder,solution};
 }
 
-export const levels: Level[] = OBJECT_MODELS.map(assemblyLevel);
+export const shortLevels: Level[] = OBJECT_MODELS.map(assemblyLevel);
+export const levels: Level[] = DETAILED_MODELS.map((model,index)=>({...assemblyLevel(model,index),screwScale:CLASSIC_SCREW_SCALE,layerCount:Math.max(...model.parts.map(p=>p.stage))+1,estimatedMinutes:index<2?'2–3':index<5?'3–4':'4–5'}));
 export const LEVELS = levels;

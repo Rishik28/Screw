@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ArcadeSession, arcadeLevels, RUN_LIMIT, START_TIME } from '../src/arcade';
 import { Game } from '../src/game';
-import { levels, type Color, type Level } from '../src/levels';
+import { levels, shortLevels, type Color, type Level } from '../src/levels';
 
 function fixture(): Level {
   const colors: Color[] = ['coral', 'blue', 'mint', 'gold', 'violet', 'orange'];
@@ -11,7 +11,7 @@ function fixture(): Level {
 }
 for (const level of arcadeLevels) test(`compact arcade model ${level.id} retains its structure and has a winning solution`, () => {
   assert.ok(level.screws.length >= 18 && level.screws.length <= 24);
-  assert.equal(level.plates.length, levels[level.id-1].plates.length);
+  assert.equal(level.plates.length, shortLevels[level.id-1].plates.length);
   for (const part of level.plates) assert.ok(level.screws.some(s=>s.plateId===part.id), `unfastened ${part.id}`);
   const game = new Game(level);
   for (const id of level.solution) assert.ok(game.selectScrew(id), `unreachable ${id}`);

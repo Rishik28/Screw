@@ -60,8 +60,9 @@ export class BoardRenderer {
   private fitHeight=3.8;
   private orbitCenter=new THREE.Vector3();
   private zoom=1;
+  private pan=new THREE.Vector2();
   private pointers=new Map<number,{x:number;y:number}>();
-  private pinch:{distance:number;zoom:number}|null=null;
+  private pinch:{distance:number;zoom:number;x:number;y:number;panX:number;panY:number;unitsX:number;unitsY:number}|null=null;
   private pinchLocked=false;
   private drag:{x:number;y:number;startX:number;startY:number;id?:string;moved:boolean}|null=null;
   constructor(private host:HTMLElement,private onSelect:(id:string)=>void,private onMiss:()=>void=()=>{}){
@@ -76,17 +77,23 @@ export class BoardRenderer {
     document.addEventListener('click',this.suppressPointerClick,true);
     host.addEventListener('pointerdown',this.pointerDown);host.addEventListener('pointermove',this.pointerMove);host.addEventListener('pointerup',this.pointerUp);host.addEventListener('pointercancel',this.pointerCancel);
     host.addEventListener('wheel',this.wheel,{passive:false});
-    host.addEventListener('keydown',event=>{if((event.target as HTMLElement).closest('button'))return;if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home'].includes(event.key)){event.preventDefault();if(event.key==='ArrowLeft')this.rotate(-1);if(event.key==='ArrowRight')this.rotate(1);if(event.key==='ArrowUp')this.pitch=Math.min(1.1,this.pitch+.25);if(event.key==='ArrowDown')this.pitch=Math.max(-1.1,this.pitch-.25);if(event.key==='Home')this.resetView();this.updateCamera();}});
+    host.addEventListener('keydown',event=>{if((event.target as HTMLElement).closest('button'))return;if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home'].includes(event.key)){event.preventDefault();if(event.key==='ArrowLeft')this.rotate(-1);if(event.key==='ArrowRight')this.rotate(1);if(event.key==='ArrowUp')this.pitch=Math.min(Math.PI/2,this.pitch+.25);if(event.key==='ArrowDown')this.pitch=Math.max(-Math.PI/2,this.pitch-.25);if(event.key==='Home')this.resetView();this.updateCamera();}});
     this.observer=new ResizeObserver(()=>this.resize());this.observer.observe(host);this.updateCamera();this.animate();
   }
   setArcade(enabled:boolean){this.arcade=enabled;}
   isExploring(){return this.pointers.size>1||!!this.drag?.moved||performance.now()<this.exploreUntil;}
   screenPoint(id:string){const b=this.buttons.get(id);return {x:b?parseFloat(b.style.left)/100*this.host.clientWidth:this.host.clientWidth/2,y:b?parseFloat(b.style.top)/100*this.host.clientHeight:this.host.clientHeight/2};}
-  getView(){return {yaw:this.yaw,pitch:this.pitch,zoom:this.zoom};}
+  getView(){return {yaw:this.yaw,pitch:this.pitch,zoom:this.zoom,panX:this.pan.x,panY:this.pan.y};}
   rotate(direction:number){this.exploreUntil=performance.now()+200;this.yaw+=direction*Math.PI/4;this.updateCamera();}
-  resetView(){this.yaw=.3;this.pitch=.18;this.setZoom(1);this.updateCamera();}
-  private setZoom(value:number){this.zoom=Math.max(.65,Math.min(2.2,value));this.camera.zoom=this.zoom;this.camera.updateProjectionMatrix();this.dirty=true;this.positionButtons();}
-  private beginPinch(){const [a,b]=[...this.pointers.values()];this.pinch=a&&b?{distance:Math.max(1,Math.hypot(a.x-b.x,a.y-b.y)),zoom:this.zoom}:null;}
+  resetView(){this.pan.set(0,0);this.yaw=.3;this.pitch=.18;this.setZoom(1);this.updateCamera();}
+  private setZoom(value:number,project=true){this.zoom=Math.max(.65,Math.min(2.2,value));this.camera.zoom=this.zoom;this.camera.updateProjectionMatrix();this.dirty=true;if(project)this.positionButtons();}
+  private beginPinch(){
+    const [a,b]=[...this.pointers.values()];
+    this.pinch=a&&b?{distance:Math.max(1,Math.hypot(a.x-b.x,a.y-b.y)),zoom:this.zoom,
+      x:(a.x+b.x)/2,y:(a.y+b.y)/2,panX:this.pan.x,panY:this.pan.y,
+      unitsX:(this.camera.right-this.camera.left)/this.zoom/this.host.clientWidth,
+      unitsY:(this.camera.top-this.camera.bottom)/this.zoom/this.host.clientHeight}:null;
+  }
   private pointerDown=(event:PointerEvent)=>{
     if(event.button!==0||(event.target as HTMLElement).closest('.rotation-controls'))return;
     if(this.pointers.size===0)this.pinchLocked=false;
@@ -97,10 +104,13 @@ export class BoardRenderer {
   };
   private pointerMove=(event:PointerEvent)=>{
     if(!this.pointers.has(event.pointerId))return;this.pointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
-    if(this.pointers.size>=2&&this.pinch){const [a,b]=[...this.pointers.values()];this.setZoom(this.pinch.zoom*Math.hypot(a.x-b.x,a.y-b.y)/this.pinch.distance);return;}
+    if(this.pointers.size>=2&&this.pinch){const [a,b]=[...this.pointers.values()];this.setZoom(this.pinch.zoom*Math.hypot(a.x-b.x,a.y-b.y)/this.pinch.distance,false);
+      this.pan.x=THREE.MathUtils.clamp(this.pinch.panX-((a.x+b.x)/2-this.pinch.x)*this.pinch.unitsX,-this.fitWidth*1.5,this.fitWidth*1.5);
+      this.pan.y=THREE.MathUtils.clamp(this.pinch.panY+((a.y+b.y)/2-this.pinch.y)*this.pinch.unitsY,-this.fitHeight*1.5,this.fitHeight*1.5);
+      this.updateCamera();return;}
     if(!this.drag)return;const dx=event.clientX-this.drag.x,dy=event.clientY-this.drag.y;
     this.drag.moved ||= Math.hypot(event.clientX-this.drag.startX,event.clientY-this.drag.startY)>6;
-    if(this.drag.moved){this.yaw-=dx*.009;this.pitch=Math.max(-1.1,Math.min(1.1,this.pitch+dy*.009));this.host.classList.add('is-dragging');this.updateCamera();}
+    if(this.drag.moved){this.yaw-=dx*.009;this.pitch=Math.max(-Math.PI/2,Math.min(Math.PI/2,this.pitch+dy*.009));this.host.classList.add('is-dragging');this.updateCamera();}
     this.drag.x=event.clientX;this.drag.y=event.clientY;
   };
   private finishPointer(event:PointerEvent,cancelled:boolean){
@@ -119,13 +129,19 @@ export class BoardRenderer {
   // A touch's compatibility click may target a dialog created by onSelect.
   // Consume that one pointer click globally, while preserving keyboard clicks.
   private suppressPointerClick=(event:MouseEvent)=>{if(event.detail>0&&performance.now()<this.suppressClickUntil){this.suppressClickUntil=0;event.preventDefault();event.stopImmediatePropagation();}};
-  private updateCamera(){this.dirty=true;const radius=16;this.camera.position.copy(this.orbitCenter).add(new THREE.Vector3(Math.sin(this.yaw)*Math.cos(this.pitch)*radius,Math.sin(this.pitch)*radius,Math.cos(this.yaw)*Math.cos(this.pitch)*radius));this.camera.lookAt(this.orbitCenter);this.camera.updateMatrixWorld();this.floor.visible=this.pitch>=0;this.groundShadow.visible=this.floor.visible;this.positionButtons();}
-  load(game:Game){this.game=game;for(const child of [...this.assembly.children]){this.assembly.remove(child);child.traverse(o=>{if(o instanceof THREE.Mesh){o.geometry.dispose();(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m.dispose());}});}this.exits.clear();this.screws.clear();this.normals.clear();this.plates=[];this.buttons.forEach(b=>b.remove());this.buttons.clear();
+  private updateCamera(){this.dirty=true;const radius=16;this.camera.position.copy(this.orbitCenter).add(new THREE.Vector3(Math.sin(this.yaw)*Math.cos(this.pitch)*radius,Math.sin(this.pitch)*radius,Math.cos(this.yaw)*Math.cos(this.pitch)*radius));this.camera.lookAt(this.orbitCenter);
+    const panOffset=new THREE.Vector3(1,0,0).applyQuaternion(this.camera.quaternion).multiplyScalar(this.pan.x)
+      .add(new THREE.Vector3(0,1,0).applyQuaternion(this.camera.quaternion).multiplyScalar(this.pan.y));
+    this.camera.position.add(panOffset);this.camera.lookAt(this.orbitCenter.clone().add(panOffset));this.camera.updateMatrixWorld();this.floor.visible=this.pitch>=0;this.groundShadow.visible=this.floor.visible;this.positionButtons();}
+  load(game:Game){
+    for(const id of this.pointers.keys())if(this.host.hasPointerCapture(id))this.host.releasePointerCapture(id);
+    this.pointers.clear();this.pinch=null;this.drag=null;this.pinchLocked=false;this.host.classList.remove('is-dragging');
+    this.game=game;for(const child of [...this.assembly.children]){this.assembly.remove(child);child.traverse(o=>{if(o instanceof THREE.Mesh){o.geometry.dispose();(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m.dispose());}});}this.exits.clear();this.screws.clear();this.normals.clear();this.plates=[];this.buttons.forEach(b=>b.remove());this.buttons.clear();
     for(const plate of game.state.level.plates){const part=plate as typeof plate&PartGeometry;const [w,h,d]=part.size??[plate.width,plate.height,.2];let geometry:THREE.BufferGeometry;
       switch(part.primitive){case 'box':geometry=new THREE.BoxGeometry(w,h,d);break;case 'sphere':geometry=new THREE.SphereGeometry(.5,12,8);geometry.scale(w,h,d);break;case 'cylinder':geometry=new THREE.CylinderGeometry(w/2,w/2,h,12);geometry.scale(1,1,d/w);break;case 'cone':geometry=new THREE.ConeGeometry(w/2,h,4);geometry.scale(1,1,d/w);geometry.rotateY(Math.PI/4);break;case 'wedge':{const shape=new THREE.Shape();shape.moveTo(-w/2,-h/2);shape.lineTo(w/2,-h/2);shape.lineTo(0,h/2);shape.closePath();geometry=new THREE.ExtrudeGeometry(shape,{depth:d,bevelEnabled:false});geometry.translate(0,0,-d/2);break;}default:{const shape=new THREE.Shape();getModelOutline(plate.shape,w*plate.scale,h*plate.scale).forEach(([x,y],i)=>i?shape.lineTo(x,y):shape.moveTo(x,y));shape.closePath();geometry=new THREE.ExtrudeGeometry(shape,{depth:.16,bevelEnabled:true,bevelThickness:.05,bevelSize:.04,bevelSegments:2});}}
       const mesh=new THREE.Mesh(geometry,new THREE.MeshLambertMaterial({color:plate.color,map:this.surfaceMap,flatShading:true}));mesh.position.set(plate.x,plate.y,plate.z);mesh.rotation.set(part.rotationX??0,part.rotationY??0,plate.rotation);mesh.castShadow=true;mesh.receiveShadow=true;mesh.userData.plateId=plate.id;mesh.userData.baseRotation=mesh.rotation.clone();for(const detail of part.details??[]){const [dw,dh,dd]=detail.size;let dg:THREE.BufferGeometry=new THREE.BoxGeometry(dw,dh,dd);if(detail.primitive==='cylinder'){dg.dispose();dg=new THREE.CylinderGeometry(dw/2,dw/2,dh,12);dg.scale(1,1,dd/dw);}else if(detail.primitive==='ring'){dg.dispose();dg=new THREE.RingGeometry(dw*.35,dw*.5,8);dg.rotateX(-Math.PI/2);}else if(detail.primitive==='sphere'){dg.dispose();dg=new THREE.SphereGeometry(.5,12,8);dg.scale(dw,dh,dd);}const child=new THREE.Mesh(dg,new THREE.MeshLambertMaterial({color:detail.color,map:this.surfaceMap,flatShading:true}));child.position.set(detail.position[0],detail.position[1],detail.position[2]);child.rotation.set(detail.rotation[0],detail.rotation[1],detail.rotation[2]);child.castShadow=true;child.receiveShadow=true;mesh.add(child);}this.assembly.add(mesh);this.plates.push(mesh);
     }
-    for(const screw of game.state.level.screws){const normal=new THREE.Vector3(...((screw as typeof screw&{normal?:[number,number,number]}).normal??[0,0,1])).normalize();const group=new THREE.Group();group.position.set(screw.x,screw.y,screw.z);group.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),normal);group.userData.screwId=screw.id;group.userData.baseRotation=group.rotation.clone();
+    for(const screw of game.state.level.screws){const normal=new THREE.Vector3(...((screw as typeof screw&{normal?:[number,number,number]}).normal??[0,0,1])).normalize();const group=new THREE.Group();group.position.set(screw.x,screw.y,screw.z);group.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),normal);group.scale.setScalar(game.level.screwScale||1);group.userData.screwId=screw.id;group.userData.baseRotation=group.rotation.clone();
       const rim=new THREE.Mesh(new THREE.CylinderGeometry(.18,.18,.055,12),new THREE.MeshLambertMaterial({color:0xa2afb5,flatShading:true}));rim.rotation.x=Math.PI/2;group.add(rim);
       const cap=new THREE.Mesh(new THREE.CylinderGeometry(.16,.16,.105,12),new THREE.MeshLambertMaterial({color:COLORS[screw.color],flatShading:true}));cap.rotation.x=Math.PI/2;cap.position.z=.055;cap.castShadow=true;group.add(cap);
       const shaft=new THREE.Group();shaft.name='threaded-shaft';shaft.visible=false;
@@ -141,16 +157,28 @@ export class BoardRenderer {
     for(const x of [box.min.x,box.max.x]) for(const y of [box.min.y,box.max.y]) for(const z of [box.min.z,box.max.z])
       projectedBounds.expandByPoint(new THREE.Vector3(x,y,z).applyMatrix4(this.camera.matrixWorldInverse));
     const fit=projectedBounds.getSize(new THREE.Vector3());
-    this.fitWidth=fit.x*.57;this.fitHeight=fit.y*.57;
+    this.fitWidth=fit.x*.48;this.fitHeight=fit.y*.48;
     this.floor.position.y=box.min.y-.04;
     this.groundShadow.position.set(sphere.center.x,box.min.y-.03,sphere.center.z);
     this.groundShadow.scale.set((box.max.x-box.min.x)*1.1,(box.max.z-box.min.z)*1.1,1);this.resetView();this.update();this.resize();
   }
-  update(){this.dirty=true;if(!this.game)return;const state=this.game.state;for(const plate of this.plates)this.release(plate,state.removedPlateIds.has(plate.userData.plateId));for(const [id,object]of this.screws){this.release(object,state.removedIds.has(id));const button=this.buttons.get(id)!;button.disabled=!this.game.isAvailable(id)||state.status!=='playing';button.setAttribute('aria-label',`Remove ${state.level.screws.find(s=>s.id===id)!.color} screw${button.disabled?' (locked; remove connected parts first)':''}`);}this.positionButtons();}
+  update(){
+    this.dirty=true;if(!this.game)return;const state=this.game.state;
+    for(const plate of this.plates)this.release(plate,state.removedPlateIds.has(plate.userData.plateId));
+    for(const[id,object]of this.screws){
+      const screw=state.level.screws.find(s=>s.id===id)!,gone=state.removedIds.has(id);
+      this.release(object,gone);
+      // Hidden inner fasteners do not bleed through shallow covers or cost draw calls.
+      if(!gone&&screw.blockedBy.some(p=>!state.removedPlateIds.has(p)))object.visible=false;
+      const button=this.buttons.get(id)!;button.disabled=!this.game.isAvailable(id);
+      button.setAttribute('aria-label',`Remove ${screw.color} screw${button.disabled?' (covered)':''}`);
+    }
+    this.positionButtons();
+  }
   hint(id:string){this.dirty=true;this.hintId=id;const normal=this.normals.get(id);if(normal){this.yaw=Math.atan2(normal.x,normal.z);this.pitch=Math.asin(Math.max(-1,Math.min(1,normal.y)));this.updateCamera();}setTimeout(()=>{if(this.hintId===id){this.hintId='';this.dirty=true;}},3500);}
   private resize(){this.dirty=true;const w=this.host.clientWidth,h=this.host.clientHeight;if(!w||!h)return;const rasterWidth=Math.min(360,Math.max(240,Math.round(w*.85)));this.renderer.setSize(rasterWidth,Math.round(h*rasterWidth/w),false);const halfY=Math.max(this.fitHeight,this.fitWidth*h/w);this.camera.left=-halfY*w/h;this.camera.right=halfY*w/h;this.camera.top=halfY;this.camera.bottom=-halfY;this.camera.updateProjectionMatrix();this.positionButtons();}
-  private positionButtons(){if(!this.game)return;this.assembly.updateMatrixWorld(true);for(const[id,group]of this.screws){const button=this.buttons.get(id)!;const normal=this.normals.get(id)!;const point=group.position.clone().addScaledVector(normal,.14);const eye=this.camera.getWorldDirection(new THREE.Vector3()).negate();let visible=group.visible&&!this.game.state.removedIds.has(id)&&normal.dot(eye)>.08;
-      if(visible){const ndc=point.clone().project(this.camera);this.raycaster.setFromCamera(new THREE.Vector2(ndc.x,ndc.y),this.camera);this.raycaster.far=point.clone().sub(this.raycaster.ray.origin).dot(this.raycaster.ray.direction)-.04;visible=!this.raycaster.intersectObjects(this.plates.filter(p=>p.visible&&!this.game!.state.removedPlateIds.has(p.userData.plateId)),false).length;}
+  private positionButtons(){if(!this.game)return;this.assembly.updateMatrixWorld(true);const occluders=this.plates.filter(p=>p.visible&&!this.game!.state.removedPlateIds.has(p.userData.plateId));for(const[id,group]of this.screws){const button=this.buttons.get(id)!;const normal=this.normals.get(id)!;const point=group.position.clone().addScaledVector(normal,.14*group.scale.x);const eye=this.camera.getWorldDirection(new THREE.Vector3()).negate();let visible=group.visible&&!this.game.state.removedIds.has(id)&&normal.dot(eye)>.08;
+      if(visible){const ndc=point.clone().project(this.camera);this.raycaster.setFromCamera(new THREE.Vector2(ndc.x,ndc.y),this.camera);this.raycaster.far=point.clone().sub(this.raycaster.ray.origin).dot(this.raycaster.ray.direction)-.04;visible=!this.raycaster.intersectObjects(occluders,false).length;}
       button.hidden=!visible;const p=point.project(this.camera);button.style.left=`${(p.x+1)*50}%`;button.style.top=`${(-p.y+1)*50}%`;button.style.zIndex=String(80-Math.round(p.z*20));button.classList.toggle('is-hint',id===this.hintId);
     }
     // Dense hardware needs nonoverlapping hit regions: each center owns its

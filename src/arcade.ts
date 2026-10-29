@@ -1,5 +1,5 @@
 import { Game } from './game';
-import { levels, type Color, type Level } from './levels';
+import { shortLevels as levels, type Color, type Level } from './levels';
 
 export const START_TIME = 45_000;
 export const RUN_LIMIT = 90_000;

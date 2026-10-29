@@ -123,3 +123,6 @@ h1 { margin: 0; font-size: 12px; line-height: 1.4; font-weight: normal; color: v
 .tray-completion { position: absolute; margin: 0; flex: none; border-color: var(--tray-color); background: color-mix(in srgb,var(--tray-color) 40%,#697d8e); box-shadow: 0 3px 0 #20334570; }
 .bucket-check { position: absolute; right: 3px; top: -12px; color: #f7e5a6; font-size: 17px; text-shadow: 1px 1px 0 #203345; }
 .impact-ring { position: absolute; width: 25px; height: 25px; border: 2px solid; border-radius: 50%; }
+
+/* Larger, edge-to-edge inspection area; two-finger pan reaches interior hardware. */
+.board-wrap { width: calc(100% + 24px); margin-left: -12px; }

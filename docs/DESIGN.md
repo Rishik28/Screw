@@ -73,3 +73,16 @@ Undo, Restart, and model changes clear stale completion feedback.
 Reduced motion suppresses shakes, tap rings, slot scaling, and bucket movement;
 a stationary full bucket/check briefly fades instead. Keep the Classic backdrop
 quiet and preserve the existing Arcade particles and score popups.
+
+
+## Longer Classic teardowns
+
+Classic variants have 20–55 parts, 42–120 screws, and inner frames/core components.
+Use larger geometry and 1–3 carefully spaced fasteners per part; do not create
+artificial waiting periods. Typical collection estimates are 2–5 minutes, not
+forced completion times. Arcade keeps the original compact variants.
+
+The model view uses wider edge-to-edge framing. Pinch to zoom, move two fingers
+together to pan, and use Reset/Home to recenter. Rotation reaches the top and
+bottom faces for deep cavities. Covered screw meshes stay hidden until their
+physical blockers are removed, preserving readability and mobile performance.

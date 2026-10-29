@@ -9,7 +9,7 @@ Use one agent by default. Add agents only when the user explicitly requests para
 ## Product requirements
 
 - Open-source portrait mobile web game; no ads, purchases, accounts, tracking, or paid hints.
-- Recognizable original multipart objects/buildings with real depth; eight Classic levels grow from 24 to 48 screws (324 total); Arcade rounds use 18–24.
+- Recognizable original multipart objects/buildings with real depth; eight Classic levels have 42–120 screws (663 total); Arcade rounds use 18–24.
 - Drag to rotate; pinch within the board to zoom only the model (0.65–2.2x). Mouse wheel also zooms. Reset/Home restores angle and zoom.
 - Eight saturated screw colors; up to four three-screw buckets; five temporary shelf slots; Classic has free hints/Undo, while Arcade has explicit time penalties.
 - Screws spin around their local axis and extract along their outward normal, exposing a shaft. Parts wait until the last screw clears before dropping. Undo restores exact poses; honor reduced motion.
@@ -72,6 +72,30 @@ only a static full-bucket/check fade, with no shakes or scaling.
 continued input, actual full-bucket animations, and Undo cleanup. Unit count is
 now 43. The focused Arcade and Classic smoke suites provide final regressions.
 No full campaign browser rerun is needed for this presentation-only update.
+
+## Expanded Classic models
+
+Classic now uses `DETAILED_MODELS` from `src/detailed-models.ts`: 20/25/30/35/40/
+45/50/55 parts and 42/54/66/78/90/102/111/120 screws. New authored interiors
+include real frames, floors, boards, optics, gears, cells, and seats. One to three
+fasteners per piece, larger geometry/head scale, and physical blockers preserve
+spacing and layer depth. Time estimates are roughly 2–5 minutes, not time gates.
+
+`levels` are detailed Classic variants; `shortLevels` are the compact originals
+used to construct Arcade. Keep these separate. `Plate.interior`, `Level.layerCount`,
+`estimatedMinutes`, and `screwScale` support UI, rendering, and validation.
+The view is larger, allows two-finger panning, and rotates to the poles. Reset
+recenters pan and zoom. Blocked screw meshes are hidden for clarity/performance.
+Unit tests cover all counts, cap clearance, spacing, real dependencies, and
+solvability. Validation: 48 unit tests and the production build pass. Physical touch-play
+checks passed all eight models across staged campaign runs (663 screws),
+including model-only pinch/pan, rotation, extraction/Undo, hints, overflow recovery,
+persistence, reduced motion, and unavailable-WebGL fallback.
+Curved-cylinder and near-edge blocker calculations were corrected after browser
+checks exposed unreachable fasteners, with regression tests for both. The browser
+test uses normal controls plus free hints for exact-axis access to deep cavities;
+`TEST_START_LEVEL=N` resumes campaign checks with explicit scope reporting.
+Arcade and tactile browser suites pass, including both reduced-motion modes.
 
 ## Files
 

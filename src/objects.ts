@@ -3,7 +3,7 @@ export type Vec3 = [number, number, number];
 export type Primitive = 'box' | 'cylinder' | 'sphere' | 'cone' | 'wedge';
 export interface ObjectPart {
   id: string; label: string; primitive: Primitive; size: Vec3; position: Vec3;
-  rotation: Vec3; color: string; stage: number;
+  rotation: Vec3; color: string; stage: number; interior?: boolean;
   anchors: {position: Vec3; normal: Vec3; blockedBy?:string[]}[];
   blockedBy: string[];
   details?: {primitive:Primitive|'ring'; size:Vec3; position:Vec3; rotation:Vec3; color:string}[];
@@ -218,16 +218,26 @@ function covers(anchor:ObjectPart['anchors'][number],other:ObjectPart):boolean {
   let near=-Infinity,far=Infinity;
   for(let axis=0;axis<3;axis++) {
     const half=other.size[axis]/2;
-    if(Math.abs(dir[axis])<1e-9) {if(Math.abs(origin[axis])>half-.015)return false;continue;}
+    if(Math.abs(dir[axis])<1e-9) {if(Math.abs(origin[axis])>half+1e-8)return false;continue;}
     let a=(-half-origin[axis])/dir[axis],b=(half-origin[axis])/dir[axis];
     if(a>b)[a,b]=[b,a];near=Math.max(near,a);far=Math.min(far,b);
     if(near>far)return false;
   }
   if(far<.02)return false;
   if(other.primitive==='cylinder') {
-    const t=Math.max(near,0);
-    const x=(origin[0]+dir[0]*t)/(other.size[0]/2),z=(origin[2]+dir[2]*t)/(other.size[2]/2);
-    if(x*x+z*z>1)return false;
+    // Intersect the actual elliptical radial footprint, not just the first
+    // AABB entry point (which can be outside a curved side that the ray hits later).
+    const rx=other.size[0]/2,rz=other.size[2]/2;
+    const qa=(dir[0]/rx)**2+(dir[2]/rz)**2;
+    const qb=2*(origin[0]*dir[0]/rx**2+origin[2]*dir[2]/rz**2);
+    const qc=(origin[0]/rx)**2+(origin[2]/rz)**2-1;
+    if(qa<1e-12){if(qc>0)return false;}
+    else{
+      const discriminant=qb*qb-4*qa*qc;if(discriminant<0)return false;
+      const root=Math.sqrt(discriminant);
+      near=Math.max(near,(-qb-root)/(2*qa));far=Math.min(far,(-qb+root)/(2*qa));
+      if(near>far||far<.02)return false;
+    }
   }
   return true;
 }
@@ -249,3 +259,7 @@ for(const model of ASSEMBLY_MODELS) for(const p of model.parts) {
   p.blockedBy=[];
   for(const anchor of p.anchors) anchor.blockedBy=model.parts.filter(other=>other.id!==p.id&&covers(anchor,other)).map(other=>other.id);
 }
+
+// Shared authoring math for the larger Classic assemblies. Compact originals
+// remain separate so Arcade retains its fast rounds.
+export { rotate, inverseRotate, covers };

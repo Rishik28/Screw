@@ -30,7 +30,7 @@ app.innerHTML=`
     <div class="tray-row" aria-label="Color sorting trays"></div>
     <div class="game-header"><h1 id="level-name"></h1><span class="gesture-note">drag · pinch</span></div>
     <div class="progress-track" role="progressbar" aria-label="Screws removed" aria-valuemin="0" aria-valuemax="100"><div class="progress-fill"></div></div>
-    <div class="board-wrap" tabindex="0" aria-label="3D puzzle board. Drag or use arrow keys to rotate. Pinch to zoom the model. Home resets the view and zoom.">
+    <div class="board-wrap" tabindex="0" aria-label="3D puzzle board. Drag or use arrow keys to rotate. Pinch to zoom. Move two fingers together to pan. Home resets the view and zoom.">
       <nav class="rotation-controls" aria-label="Rotate model">
         <button class="rotate-button" id="rotate-left" aria-label="Rotate model left">↶</button>
         <button class="rotate-button" id="reset-view" aria-label="Reset model view">⌂</button>
@@ -175,6 +175,8 @@ function select(id: string) {
 function update(message?: string) {
   const state = game.state;
   $('#level-name').textContent = state.level.name;
+  $('.gesture-note').textContent = arcade ? 'drag · pinch' : `${state.level.screws.length-state.removedIds.size} screws left`;
+  $('.gesture-note').title = 'Drag to turn, pinch to zoom, move two fingers together to pan';
   $('#level-pill').textContent = arcade ? `RUN ${arcade.modelsCleared + 1}` : `${String(classicIndex + 1).padStart(2, '0')} / ${String(levels.length).padStart(2, '0')}`;
   $('#level-pill').setAttribute('aria-label', arcade ? 'Arcade models advance automatically' : `Choose puzzle. Current puzzle ${classicIndex + 1} of ${levels.length}`);
   $('#level-pill').toggleAttribute('disabled', !!arcade);
@@ -211,7 +213,7 @@ function showEnd(won: boolean) {
 function showCollection() {
   if (arcade) return;
   let selected = classicIndex;
-  modal('✣', 'The collection', `<p>Choose a model. Every puzzle is free to replay.</p><div class="puzzle-grid">${levels.map((level, index) => `<button class="puzzle-choice" data-level-index="${index}" aria-pressed="${index === selected}"><span class="puzzle-choice-name">${index + 1}. ${level.name}</span><span class="puzzle-choice-detail">${level.screws.length} screws · ${level.plates.length} parts</span></button>`).join('')}</div>`, 'Replay this puzzle', () => start(selected));
+  modal('✣', 'The collection', `<p>Choose a model. Every puzzle is free to replay.</p><div class="puzzle-grid">${levels.map((level, index) => `<button class="puzzle-choice" data-level-index="${index}" aria-pressed="${index === selected}"><span class="puzzle-choice-name">${index + 1}. ${level.name}</span><span class="puzzle-choice-detail">${level.screws.length} screws · ${level.plates.length} parts<br>${level.layerCount||1} layers · ~${level.estimatedMinutes||'2–3'} min</span></button>`).join('')}</div>`, 'Replay this puzzle', () => start(selected));
   const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>('.puzzle-choice'));
   for (const button of buttons) button.onclick = () => {
     selected = Number(button.dataset.levelIndex);
@@ -236,7 +238,7 @@ $('#hint').onclick = () => {
 };
 $('#help').onclick = () => arcade
   ? modal('✦', 'Arcade · score attack', '<p>45 seconds to start. Clear a bucket for +3 seconds. Runs last up to 90 active seconds.</p><ol class="help-list"><li>Remove screws within 2 seconds to build a multiplier, up to ×5.</li><li>Turning briefly protects your combo. Misses reset it.</li><li>Shelf overflow costs 5 seconds and rewinds moves to free space.</li><li>Undo and Hint each cost 2 seconds. Undo also reverses the score and time bonus from that move.</li></ol><p>The clock is paused while this panel is open.</p>', 'Continue run', () => {})
-  : modal('✣', 'A little room to unwind', '<ol class="help-list"><li>Drag to explore. Pinch to zoom. Tap an exposed screw to unscrew it.</li><li>Match three of the same color to clear a tray.</li><li>Other colors wait on your five-space shelf.</li><li>Remove every screw from a part to reveal the assembly beneath.</li></ol><p>Classic has no timer. Hints and Undo are free.</p>', 'Let’s play', () => {});
+  : modal('✣', 'A little room to unwind', '<ol class="help-list"><li>Drag to explore. Pinch to zoom; move two fingers together to pan. Tap an exposed screw to unscrew it.</li><li>Match three of the same color to clear a tray.</li><li>Other colors wait on your five-space shelf.</li><li>Remove every screw from a part to reveal the assembly beneath.</li></ol><p>Classic has no timer. Hints and Undo are free.</p>', 'Let’s play', () => {});
 document.addEventListener('keydown', event => {
   if ($('.modal-backdrop').hidden) return;
   if (event.key === 'Escape' && game.state.status === 'playing' && !arcade?.ended) { closeModal(); return; }

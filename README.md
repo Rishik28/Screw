@@ -39,14 +39,14 @@ Tap the puzzle counter beside the model name to open the collection. Select any 
 
 Drag to rotate the assembly and inspect every side. Pinch with two fingers inside the board to zoom the model without zooming the page; on desktop, use the mouse wheel over the board. Use the left/right view buttons or focus the board and use arrow keys to rotate; Home and the reset-view button restore the original angle and zoom. Tap an exposed screw and collect three of a color in one of up to four active buckets. Screws that do not match an active bucket wait on the five-slot shelf. Matching screws move from the shelf into new buckets automatically. Exceeding the shelf capacity ends the attempt; undo and restart are free.
 
-Removing every screw from a structural part releases it and reveals the assembly beneath. Screws on hidden faces must be rotated into view. Clear all screws and buckets to finish the puzzle. Progress to the current level is saved locally in your browser. The campaign uses eight original multipart objects: a chalet, lighthouse, windmill, locomotive, camera, moon rover, clocktower hall, and city tram. Levels grow from 24 to 48 screws, with eight vivid screw colors, branching part dependencies, and a five-slot shelf that rewards planning. Hints verify a winning continuation and turn the model toward the suggested screw.
+Removing every screw from a structural part releases it and reveals the assembly beneath. Screws on hidden faces must be rotated into view. Clear all screws and buckets to finish the puzzle. Progress to the current level is saved locally in your browser. The campaign uses eight original multipart objects: a chalet, lighthouse, windmill, locomotive, camera, moon rover, clocktower hall, and city tram. Classic models have 20–55 detachable parts and 42, 54, 66, 78, 90, 102, 111, or 120 screws, with eight vivid screw colors, branching part dependencies, and a five-slot shelf that rewards planning. Hints verify a winning continuation and turn the model toward the suggested screw. Outer shells now hide frames, floors, circuit boards, optics, gears, seats, and other core components. Collection time estimates target roughly 2–5 minutes; Classic is untimed and completion speed varies. Two fingers moving together pan the view, while pinching changes zoom; Reset/Home recenters it.
 
 ## Arcade
 
 Choose **Arcade · score attack** above the buckets. Classic stays available, and switching back restores its current attempt.
 
 - Start with 45 seconds. Each cleared bucket adds 3 seconds; the clock holds at most 60 seconds and a run ends after 90 active seconds.
-- Compact rounds keep every structural part but use 18–24 screws. Clearing a model automatically loads the next one.
+- Arcade uses separate compact model variants with 18–24 screws, preserving its fast pace. Clearing a model automatically loads the next one.
 - Earn 100 points per screw, 300 per bucket, and 500 per model, multiplied by your combo (up to ×5). Remove screws within 2 seconds to keep the chain; turning grants up to 0.8 seconds of grace per gap. Misses reset the chain.
 - Shelf overflow costs 5 seconds and rewinds enough moves to free space. Rewound score and time rewards are reversed, so no colors are discarded and puzzles stay solvable.
 - Undo and Hint each cost 2 seconds in Arcade. Undo also reverses the move's rewards. Both remain free in Classic.
@@ -67,7 +67,8 @@ Run `npm run test:tactile` against the preview for both modes’ fill animations
 - `src/renderer.ts`: Three.js scene, model rendering, and screw interaction.
 - `src/main.ts`: application UI and progression.
 - `src/styles.css`: responsive portrait layout and visual design.
-- `src/objects.ts`: original multipart 3D assemblies, geometry, screw anchors, and component dependencies.
+- `src/detailed-models.ts`: larger Classic assemblies, authored interiors, and spaced fasteners.
+- `src/objects.ts`: original compact multipart 3D assemblies, geometry, screw anchors, and component dependencies.
 - `src/models.ts` and `public/assets/model-catalog.json`: original silhouette catalog retained for reuse.
 - `tests/`: automated checks.
 
