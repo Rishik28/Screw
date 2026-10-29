@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright-core';
+const smoke = process.argv.includes('--smoke');
 const artifacts = process.env.TEST_ARTIFACTS || '/tmp/screw-garden-browser';
 await mkdir(artifacts, { recursive: true });
 const browser = await chromium.launch({
@@ -19,6 +20,25 @@ try {
   await page.waitForFunction(() => window.__game && window.__board);
   assert.equal(await page.locator('canvas').count(), 1, '3D board did not start');
   assert.equal(await page.evaluate(() => !!document.querySelector('canvas').getContext('webgl2')), true);
+  // Collection navigation must preserve an attempt until Play is explicitly chosen.
+  await page.getByRole('button', {name: /^Choose puzzle/}).tap();
+  const choices = page.locator('.puzzle-choice');
+  assert.equal(await choices.count(), 8);
+  await choices.last().tap();
+  await page.getByRole('button', {name: 'Play this puzzle', exact: true}).tap();
+  await page.waitForFunction(() => window.__game.level.id === 8);
+  await page.reload(); await page.waitForFunction(() => window.__game && window.__board);
+  assert.equal(await page.evaluate(() => window.__game.level.id), 8, 'selected puzzle did not persist');
+  await page.getByRole('button', {name: /^Choose puzzle/}).tap();
+  await choices.first().tap();
+  await page.getByRole('button', {name: 'Keep playing', exact: true}).tap();
+  await page.waitForFunction(() => document.querySelector('.modal-backdrop').hidden);
+  assert.equal(await page.evaluate(() => window.__game.level.id), 8, 'cancel changed the puzzle');
+  await page.getByRole('button', {name: /^Choose puzzle/}).tap();
+  await choices.first().tap();
+  await page.getByRole('button', {name: 'Play this puzzle', exact: true}).tap();
+  await page.waitForFunction(() => window.__game.level.id === 1);
+  console.log('PASS: collection selection, cancel, and persisted puzzle');
   let rotations = 0;
   async function reveal(id) {
     assert.equal(await page.evaluate(id => window.__game.isAvailable(id), id), true, `rule-blocked solution screw ${id}`);
@@ -146,7 +166,8 @@ try {
     const screw = window.__board.screws.get(id);
     return {position:screw.position.toArray(),quaternion:screw.quaternion.toArray(),visible:screw.visible};
   }, id);
-  for (let level = 1; level <= levelCount; level++) {
+  const levelsToTest = smoke ? 1 : levelCount;
+  for (let level = 1; level <= levelsToTest; level++) {
     if (level === 2) {
       const losingPath = ['lantern-roof-s2', 'glass-front-s1', 'glass-front-s2', 'glass-back-s1', 'glass-left-s1', 'glass-right-s1'];
       for (const id of losingPath) await (await reveal(id)).tap();
@@ -215,7 +236,7 @@ try {
   assert.ok(rotations > 0, 'campaign never exercised model rotation');
   assert.equal(extractionFaces.size, 6, 'did not verify extraction on all six face directions');
   assert.deepEqual(errors, [], 'browser errors');
-  console.log(`PASS: portrait, WebGL, four buckets, model-only pinch, touch-drag rotation, six-face outward extraction/Undo, focus, hints/restart, saved progress. ${removed} screws, ${rotations} turns. Screenshots: ${artifacts}`);
+  console.log(`PASS (${smoke ? "smoke: first level only; campaign overflow and later levels skipped" : "full campaign"}): portrait, WebGL, four buckets, model-only pinch, touch-drag rotation, six-face outward extraction/Undo, focus, hints/restart, saved progress. ${removed} screws, ${rotations} turns. Screenshots: ${artifacts}`);
   const reduced = await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,reducedMotion:'reduce'});
   const reducedPage = await reduced.newPage();
   const reducedErrors=[];

@@ -2,6 +2,8 @@
 
 A free, open-source 3D screw puzzle for portrait mobile browsers. No ads, in-app purchases, accounts, or paid hints.
 
+For project status and continuation instructions, read [docs/HANDOFF.md](docs/HANDOFF.md).
+
 ## Run locally
 
 Requires Node.js 22.12+ (Node.js 24 recommended) and npm.
@@ -19,7 +21,7 @@ npm run build # TypeScript checks and production bundle
 npm run preview
 ```
 
-Browser regression checks use `npm run test:browser` against a running production preview. They require a locally installed Chromium browser; see the test script for executable and base-URL overrides. In the cloud environment Chromium is available at `/usr/bin/chromium`.
+For focused UI checks, use `npm run test:browser:smoke` (first level, pinch/rotation, extraction, progression, reduced motion, and WebGL fallback). Run the full campaign once before publishing changes to game rules or model geometry. Full browser regression checks use `npm run test:browser` against a running production preview. They require a locally installed Chromium browser; see the test script for executable and base-URL overrides. In the cloud environment Chromium is available at `/usr/bin/chromium`.
 
 Deploy the generated `dist/` directory to a static web host. The game does not need a backend or API credentials.
 
@@ -30,6 +32,8 @@ The `Publish game` workflow builds and updates the `gh-pages` branch on every pu
 For a manual static build with portable asset paths, use `npm run build -- --base=./`.
 
 ## Play
+
+Tap the puzzle counter beside the model name to open the collection. Select any model to play or replay; cancel to keep your current attempt.
 
 Drag to rotate the assembly and inspect every side. Pinch with two fingers inside the board to zoom the model without zooming the page; on desktop, use the mouse wheel over the board. Use the left/right view buttons or focus the board and use arrow keys to rotate; Home and the reset-view button restore the original angle and zoom. Tap an exposed screw and collect three of a color in one of up to four active buckets. Screws that do not match an active bucket wait on the five-slot shelf. Matching screws move from the shelf into new buckets automatically. Exceeding the shelf capacity ends the attempt; undo and restart are free.
 

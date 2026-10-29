@@ -89,3 +89,13 @@ h1 { font-size: clamp(29px, 8vw, 38px); line-height: 1.05; letter-spacing: -1.8p
 @media (min-width: 600px) { body { display: grid; place-items: center; padding: 30px 0; background: radial-gradient(ellipse at top, #edf2e9, #dce6dc); } .app-shell { min-height: 0; border-radius: 32px; box-shadow: 0 18px 90px #2c4b3420; padding: 28px; } }
 @media (max-width: 360px), (max-height: 740px) and (max-width: 599px) { .app-shell { padding: max(16px, env(safe-area-inset-top)) 17px max(16px, env(safe-area-inset-bottom)); } .topbar { margin-bottom: 12px; } h1 { font-size: 29px; } .progress-track { margin: 12px 0 16px; } .tray { padding-top: 9px; padding-bottom: 8px; } .tray-label { margin-bottom: 6px; } .board-wrap { aspect-ratio: 1 / .94; margin-top: 8px; } .footer-note { margin-top: 5px; } .status-line { margin: 7px 0 10px; font-size: 11px; line-height: 1.4; } .tool-button { min-height: 48px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
+
+/* Collection access stays in the existing header footprint. */
+.level-pill { min-height: 44px; background: transparent; }
+.level-pill::after { content: '⌄'; margin-left: 6px; font-size: 13px; }
+.modal { max-height: calc(100svh - 32px); overflow-y: auto; }
+.puzzle-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 16px; }
+.puzzle-choice { min-height: 70px; padding: 10px 8px; text-align: left; border: 1px solid #d7dfd5; border-radius: 12px; color: var(--ink); background: #fffefa; }
+.puzzle-choice[aria-pressed="true"] { border-color: var(--accent); background: #e5eee2; box-shadow: inset 0 0 0 1px var(--accent); }
+.puzzle-choice-name { display: block; font-size: 12px; font-weight: 800; line-height: 1.3; }
+.puzzle-choice-detail { display: block; margin-top: 6px; color: #657762; font-size: 10px; line-height: 1.4; }
