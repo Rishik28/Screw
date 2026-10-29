@@ -5,6 +5,7 @@ import { levels } from './levels';
 import { BoardRenderer } from './renderer';
 import { ArcadeSession } from './arcade';
 import { GameEffects } from './effects';
+import { Haptics } from './haptics';
 import { WorkshopRun, SAVE_KEY, UPGRADES, RESTORATION_COSTS, loadProfile, nextModel, purchase, purchaseReason, restore } from './workshop';
 
 declare global { interface Window { __game:Game; __board:BoardRenderer; __arcade:ArcadeSession|null; __workshop:WorkshopRun|null; } }
@@ -89,6 +90,7 @@ try {
 } catch {
   $('.board-wrap').innerHTML = '<p class="render-error">Your browser could not start 3D graphics. Try enabling hardware acceleration or opening this page in a current version of Safari, Chrome, or Firefox.</p>';
 }
+const haptics=new Haptics();
 const effects = new GameEffects($('.board-wrap'), $('.app-shell'));
 $('#mode-arcade').toggleAttribute('disabled', !board);
 $('#mode-workshop').toggleAttribute('disabled', !board);
@@ -167,6 +169,7 @@ function select(id: string) {
     const oldCharges=workshop.charges;
     const hit=workshop.select(id);if(!hit.accepted)return;
     const earned=`+${workshop.rewards.screws.xp-previous.xp} XP · +${workshop.rewards.screws.scrap-previous.scrap} scrap`;
+    haptics.screw(game.clearedTrays.length>0);
     saveWorkshop();
     update(hit.discovered.length ? 'Interior discovered! Discovery rewards banked.' : hit.fresh ? `${earned} banked` : 'Already salvaged this screw.');
     effects.salvage(point,color,hit.fresh ? earned : '',game.state.removedPlateIds.size>beforeParts);
@@ -178,6 +181,7 @@ function select(id: string) {
   }
   if (!arcade) {
     if (game.selectScrew(id)) {
+      haptics.screw(game.clearedTrays.length>0);
       update(game.clearedTrays.length ? `${game.clearedTrays.map(t=>t.color).join(' and ')} bucket cleared.` : 'A little closer. Keep an eye on your shelf.');
       effects.impact(point,color,game.clearedTrays.length?0:game.state.removedPlateIds.size>beforeParts?2:1);
       effects.buckets(beforeBuckets,game.clearedTrays,false);
@@ -192,6 +196,7 @@ function select(id: string) {
     effects.center('SHELF FULL −5s', '#ee8c78', true);
     update(`Shelf full: −5s. Rewound ${hit.rewound} earlier screws to free space.`);
   } else if (hit.accepted) {
+    haptics.screw(hit.buckets>0);
     const bonus = hit.timeBonus ? `  +${(hit.timeBonus / 1000).toFixed(0)}s` : '';
     effects.burst(point, color, `+${hit.points}${bonus}`, hit.buckets > 0);
     if (hit.multiplier > oldMultiplier) effects.center(`×${hit.multiplier} COMBO`);
@@ -285,6 +290,18 @@ $('#help').onclick = () => workshop
   : arcade
   ? modal('✦', 'Arcade · score attack', '<p>45 seconds to start. Clear a bucket for +3 seconds. Runs last up to 90 active seconds.</p><ol class="help-list"><li>Remove screws within 2 seconds to build a multiplier, up to ×5.</li><li>Turning briefly protects your combo. Misses reset it.</li><li>Shelf overflow costs 5 seconds and rewinds moves to free space.</li><li>Undo and Hint each cost 2 seconds. Undo also reverses the score and time bonus from that move.</li></ol><p>The clock is paused while this panel is open.</p>', 'Continue run', () => {})
   : modal('✣', 'A little room to unwind', '<ol class="help-list"><li>Drag to explore. Pinch to zoom; move two fingers together to pan. Tap an exposed screw to unscrew it.</li><li>Match three of the same color to clear a tray.</li><li>Other colors wait on your five-space shelf.</li><li>Remove every screw from a part to reveal the assembly beneath.</li></ol><p>Classic has no timer. Hints and Undo are free.</p>', 'Let’s play', () => {});
+// Keep the optional hardware control in Help, avoiding another gameplay toolbar.
+const openHelp=$('#help').onclick;
+$('#help').onclick=event=>{
+  openHelp?.call($('#help'),event);
+  $('.modal-copy').insertAdjacentHTML('beforeend',`<div class="haptics-setting"><button id="toggle-vibration" aria-pressed="${haptics.enabled}" ${haptics.supported?'':'disabled'}>${icon('vibrate')} Vibration · ${haptics.enabled?'on':'off'}</button><p>${haptics.supported?'Short pulses for screws and bucket clears.':'Vibration unavailable in this browser. iPhone Safari does not support it.'}</p></div>`);
+  $('#toggle-vibration').onclick=()=>{
+    haptics.setEnabled(!haptics.enabled);
+    $('#toggle-vibration').setAttribute('aria-pressed',String(haptics.enabled));
+    $('#toggle-vibration').innerHTML=`${icon('vibrate')} Vibration · ${haptics.enabled?'on':'off'}`;
+    if(haptics.enabled)haptics.screw();
+  };
+};
 document.addEventListener('keydown', event => {
   if ($('.modal-backdrop').hidden) return;
   if (event.key === 'Escape' && game.state.status === 'playing' && !arcade?.ended && !workshop?.ended) { closeModal(); return; }
@@ -295,6 +312,7 @@ document.addEventListener('keydown', event => {
   }
 });
 document.addEventListener('visibilitychange', () => {
+  if(document.hidden)haptics.stop();
   lastTick = performance.now();
   if ((!arcade || arcade.ended) && (!workshop || workshop.ended)) return;
   if (document.hidden) needsResume = true;

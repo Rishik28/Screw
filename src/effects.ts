@@ -39,7 +39,7 @@ export class GameEffects {
   shake(strength: number) {
     if (!strength || performance.now()-this.lastShake < 70) return;
     this.lastShake = performance.now(); this.stopShake();
-    const amount = Math.min(9, strength*1.65);
+    const amount = Math.min(3, strength*.6);
     const animation = this.screen.animate([
       {transform:'translate(0,0)'},
       {transform:`translate(${-amount}px,${amount*.45}px)`,offset:.2},
@@ -58,7 +58,6 @@ export class GameEffects {
       {transform:'translate(-50%,-50%) scale(1.55)',opacity:0},
     ], 230);
     this.shake(strength);
-    this.host.dispatchEvent(new CustomEvent('game-impact',{detail:strength}));
   }
   press(button: HTMLElement) {
     this.track(button.animate([{scale:'1',translate:'0 0'},{scale:'.93',translate:'0 3px',offset:.25},{scale:'1.025',translate:'0 -1px',offset:.7},{scale:'1',translate:'0 0'}],{duration:220,easing:'ease-out'}));
@@ -127,7 +126,7 @@ export class GameEffects {
       ],{duration:arcade?200:280,delay:arcade?90:150,easing:'ease-out'}));
     }
     if (clears.length) {
-      this.shake(6);this.host.dispatchEvent(new CustomEvent('game-impact',{detail:6}));
+      this.shake(3);
       this.burst({x:this.host.clientWidth/2,y:this.host.clientHeight*.24},COLORS[clears[0].color],'BUCKET CLEAR',true);
     }
   }

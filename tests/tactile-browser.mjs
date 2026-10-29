@@ -43,9 +43,9 @@ try{
   assert.ok(shakes.length>0,'no real stage shake was started');
   assert.ok(clears[0].frames.some(frame=>String(frame.transform).includes('scale')),'bucket did not squash');
   assert.ok(log.some(x=>x.target.includes('tray-slot')),'slot fill did not pop');
-  // Camera kick is transient and must restore the player's chosen model zoom.
-  await page.waitForFunction(()=>window.__board.punchStrength===0);
-  assert.ok(await page.evaluate(()=>window.__zoomPeak>1.02),'no visible camera punch occurred');
+  // Effects must leave model zoom unchanged throughout the interaction.
+  await page.waitForTimeout(300);
+  assert.equal(await page.evaluate(()=>window.__zoomPeak),1,'screw feedback must not change model zoom');
   assert.equal(await page.evaluate(()=>window.__board.camera.zoom),await page.evaluate(()=>window.__board.getView().zoom));
   // Hold a completion at its midpoint for review, then play through it. This
   // pauses only the decorative copy, never the game or interaction handlers.

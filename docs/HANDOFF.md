@@ -1,5 +1,12 @@
 # Screw Garden handoff
 
+## Subtle vibration and no zoom punch release
+
+The user explicitly authorized publishing this release on October 29, 2026; baseline `8ac29b5`. The user approved removing automatic camera punches, reducing shakes and adding optional phone vibration. `src/haptics.ts` wraps Vibration API requests safely, with a saved opt-in toggle in Help (default off). Accepted screws request 10ms; a bucket-clear move requests one 20ms pulse instead. Disabling/backgrounding cancels pending vibration. Unsupported browsers show an unavailable setting and keep normal gameplay. Test API invocation with mocks; no claim of actual device intensity has been verified. Android Chrome generally supports the API; iPhone Safari does not.
+
+Renderer camera punch state/events/animation are removed. Pinch and wheel zoom are unchanged. Stage shakes are capped at 3px; existing cabinet buttons, particles and pressure effects remain. OS reduced-motion override remains as previously requested. `test:haptics` covers actual UI toggle/persistence, pulse requests, unsupported-browser play and no automatic zoom. `test:tactile` now asserts model zoom remains exactly unchanged throughout effects. Validation passes: 60 unit tests, production build, haptics browser checks (mocked Vibration API), and both-mode tactile checks with both OS motion preferences. No physical phone vibration strength was tested. This publication authorization covers this release only; future publication requires a new request.
+
+
 ## Cabinet controls and explosive feedback release
 
 The user explicitly authorized publishing this release on October 29, 2026; baseline `0e4ffc6`. The user requested raised arcade cabinet buttons, stronger shakes, quick zoom-ins, and intentionally disabled reduced-motion handling for now. This supersedes the historical reduced-motion requirements below. This authorization covers this release only; future publication requires a new request.
